@@ -64,7 +64,7 @@ class afterglow:
 
 
 ###############################################################################################
-
+# Methods for initializing afterglow time parameters and time evolution
 ###############################################################################################
 
     def __charFreq(self, gamE):
@@ -138,7 +138,7 @@ class afterglow:
 
         self.nuCrit = 2.7e12*self.epB**(-3./2.)*EE**(-1./2.)*nn**(-1.)*tt**(-1./2.)
         self.nuGM   = 5.7e14*self.epB**(1./2.)*self.epE**2.*EE**(1./2.)*tt**(-3./2.)
-        self.FnuMax  = 1.1e5*self.epB**(1./2.)*EE*nn**(1./2.)*DD**(-2.)
+        self.FnuMax  = 1.1e-1*self.epB**(1./2.)*EE*nn**(1./2.)*DD**(-2.) # In Joules (extra factor of 1e6 when compared to paper)
 
 
     def __radiativeEvolution(self):
@@ -155,8 +155,7 @@ class afterglow:
 
         self.nuCrit = 1.3e13*self.epB**(-3./2.)*EE**(-4./7.)*nn**(-13./14)*tt**(-2./7.)
         self.nuGM   = 1.2e14*self.epB**(1./2.)*self.epE**2.*EE**(4./7.)*nn**(-1./14)*tt**(-12./7.)
-        self.FnuMax  = 4.5e3*self.epB**(1./2.)*EE**(8./7.)*gam**(-8./7.)*nn**(5./14.)*DD**(-2.)*tt**(-3./7.)
-
+        self.FnuMax  = 4.5e-3*self.epB**(1./2.)*EE**(8./7.)*gam**(-8./7.)*nn**(5./14.)*DD**(-2.)*tt**(-3./7.) # In Joules (extra factor of 1e6 when compared to paper)
 
 
 
@@ -176,7 +175,7 @@ class afterglow:
 
 
 ###############################################################################################
-
+# Methods for extracting fluxes, light-curves, etc.
 ###############################################################################################
 
     def updateAfterGlow(self, tt):

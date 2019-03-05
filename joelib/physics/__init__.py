@@ -1,4 +1,4 @@
-__all__ = ["binary", "binaryGW", "petersev", "synchrotron_afterglow"]
+__all__ = ["binary", "binaryGW", "petersev", "synchrotron_afterglow", "jethead"]
 #from binary import *
 #from binaryGW import *
 #from petersev import *
