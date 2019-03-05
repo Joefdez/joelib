@@ -41,6 +41,7 @@ class afterglow:
 
         # Obtain deceleration radius time and initialize time variable
         ttd = (3./(32.*pi) * 1./(cts.cc**5.*cts.mp*self.nn) *self.Gam0**(-8.) * self.EE)**(1./3.)
+
         self.ttd = ttd
         self.tt  = ttd           # Initialize time variable
         if (agtype == "adiabatic") or (agtype == "radiative"):
@@ -58,6 +59,8 @@ class afterglow:
             self.__radiativeEvolution()
 
         self.__shellRadius()
+        self.__transFreq()
+        #self.__criticalTimes()
 
 
 ###############################################################################################
@@ -95,15 +98,15 @@ class afterglow:
         elif self.agtype == "radiative":
             self.Rad = (4.*cts.cc*self.tt/self.LL)**(1./7.) * LL
 
-    def __fluidGam(self, tt):
+    def __fluidGam(self):
         """
         Compute shocked fluid Lorentz factor after a time tt .
         Equation 10 in Sari and Piran 1997
         """
         if self.agtype == "adiabatic":
-            self.fgam = (17.*EE/(1024.*pi*cts.mp*nn*cts.cc**5.*tt**3.))**(1./8.)
+            self.fgam = (17.*self.EE/(1024.*pi*cts.mp*self.nn*cts.cc**5.*self.tt**3.))**(1./8.)
         elif self.agtype == "radiative":
-            self.fgam = (4.*cts.cc*tt/LL)**(-3./7.)
+            self.fgam = (4.*cts.cc*self.tt/self.LL)**(-3./7.)
 
     def __selfTransTime(self):
         """
@@ -115,7 +118,7 @@ class afterglow:
         gam = self.Gam/100            # Lorentz factor in unit of 100
         EE = self.EE/1.e45            # In units of 10**45 Joules (10**52 ergs)
         DD = self.DD/1.e26            # In units of 10**28 cm
-        nn = self.nn*1.e6             # In units of cm**3.
+        nn = self.nn/1.e6             # In units of cm**3.
 
         if self.agtype == "adiabatic":
             self.ttrans = 210.*(self.epB * self.epE)**2. * EE * nn
@@ -131,7 +134,7 @@ class afterglow:
         tt = self.tt/cts.sTd          # time in days
         EE = self.EE/1.e45            # In units of 10**45 Joules (10**52 ergs)
         DD = self.DD/1.e26            # In units of 10**28 cm
-        nn = self.nn*1.e6             # In units of cm**3.
+        nn = self.nn/1.e6             # In units of cm**3.
 
         self.nuCrit = 2.7e12*self.epB**(-3./2.)*EE**(-1./2.)*nn**(-1.)*tt**(-1./2.)
         self.nuGM   = 5.7e14*self.epB**(1./2.)*self.epE**2.*EE**(1./2.)*tt**(-3./2.)
@@ -148,7 +151,7 @@ class afterglow:
         gam = self.Gam/100.       # Lorentz factor in units of 100
         EE = self.EE/1.e45           # In units of 10**52 ergs
         DD = self.DD/1.e26        # In units of 10**28 cm
-        nn = self.nn*1.e6         # In units of cm**3
+        nn = self.nn/1.e6         # In units of cm**3
 
         self.nuCrit = 1.3e13*self.epB**(-3./2.)*EE**(-4./7.)*nn**(-13./14)*tt**(-2./7.)
         self.nuGM   = 1.2e14*self.epB**(1./2.)*self.epE**2.*EE**(4./7.)*nn**(-1./14)*tt**(-12./7.)
@@ -156,33 +159,14 @@ class afterglow:
 
 
 
-    def __criticalTimes(self, nu):
-        """
-        Times at which the frequencies associated with the critical and minumum Lorentz factors cross the observed
-        frequency nu
-        Two outputs, tc and tm, in days
-        """
-        nu = nu/(1.e15)
-        gam = self.Gam/100.
-        EE = self.EE/1.e45   # In units of 10**45 J (10**52 ergs)
-        nn = self.nn*1.e6    # In units of cm**3
-
-        if self.agtype == "adiabatic":
-            tc = 7.3e-6*self.epB**(-3.)*EE**(-1.)*nn**(-2.)*nu**(-2.)
-            tm = 0.69*self.epB**(1./3.)*self.epE**(4./3.)*EE**(1./3.)*nu**(-2./3)
-        elif self.agtype == "radiative":
-            tc = 2.7e-7*self.epB**(-21./4.)*EE**(-2.)*gam**(2.)*nn**(-13./4.)*nu**(-7./2)
-            tm = 0.29*self.epB**(7./24.)*self.epE**(7./6.)*EE*(1./3.)*gam**(-1./3.)*nn**(-1./24)*gam**(4./5.)
-
 
     def __transFreq(self):
         """
         Critical frequency at which nu0 = nuCrit(tt0) = nuGM(tt0)
         """
-        nu = nu/(1.e15)
         gam = self.Gam/100.
         EE = self.EE/1.e45   # In units of 10**45 J (10**52 ergs)
-        nn = self.nn*1.e6    # In units of cm**3
+        nn = self.nn/1.e6    # In units of cm**3
 
         if self.agtype == "adiabatic":
             self.nuT = 1.8e11*self.epB**(-5./2.) * self.epE**(-1.)*EE**(-1.)*nn**(-3./2.)
@@ -253,3 +237,23 @@ class afterglow:
             nu[nu>=self.nuGM]/self.nuGM)**(-self.pp/2.)*self.FnuMax
 
         return flux
+
+    def criticalTimes(self, nu):
+        """
+        Times at which the frequencies associated with the critical and minumum Lorentz factors cross the observed
+        frequency nu
+        Two outputs, tc and tm, in days
+        """
+        nu = nu/(1.e15)
+        gam = self.Gam/100.
+        EE = self.EE/1.e45   # In units of 10**45 J (10**52 ergs)
+        nn = self.nn/1.e6    # In units of cm**3
+
+        if self.agtype == "adiabatic":
+            ttc = 7.3e-6*self.epB**(-3.)*EE**(-1.)*nn**(-2.)*nu**(-2.)
+            ttm = 0.69*self.epB**(1./3.)*self.epE**(4./3.)*EE**(1./3.)*nu**(-2./3)
+        elif self.agtype == "radiative":
+            ttc = 2.7e-7*self.epB**(-21./4.)*EE**(-2.)*gam**(2.)*nn**(-13./4.)*nu**(-7./2)
+            ttm = 0.29*self.epB**(7./24.)*self.epE**(7./6.)*EE*(1./3.)*gam**(-1./3.)*nn**(-1./24)*gam**(4./5.)
+
+        return ttc, ttm

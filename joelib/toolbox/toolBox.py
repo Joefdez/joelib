@@ -1,7 +1,9 @@
 from numpy import *
-#from numpy.random import uniform, seed
-#from matplotlib.pylab import *
-#from scipy.integrate import quad
+from numpy.random import uniform, seed
+from matplotlib.pylab import *
+from scipy.integrate import quad
+
+
 
 
 def quadArray(func, aa, bb):
