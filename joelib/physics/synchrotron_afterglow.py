@@ -3,6 +3,170 @@ import joelib.constants.constants as cts
 
 
 
+class adiabatic_afterglow:
+
+    """
+    Simple afterglow model assuming adiabatic evolution
+    """
+
+    def __init__(self, EE, Gam0, nn, epE, epB, pp, DD):
+        self.EE   = EE
+        self.Gam0 = Gam0
+        self.Beta0 = (1.-1./self.Gam0**2.)**(1./2.)
+        self.nn   = nn
+        self.epE  = epE
+        self.epB  = epB
+        self.pp   = pp
+        self.DD   = DD
+        self.__decRad()
+        self.__onAxisdecTime()
+        self.updateAG(self.Rd)
+
+# ========== Private methods =======================================================================================================
+
+
+    def __decRad(self):
+        # Deceleration radius of the jet
+        self.Rd = (3./(4.*pi) * 1./(cts.cc**2.*cts.mp) *
+                        self.EE/(self.nn*self.Gam0**2.))**(1./3.)
+        #self.Td = self.Rd/(2.*self.Gam0**2 * cts.cc)
+
+
+    def __onAxisdecTime(self):
+        # Deceleration time for an on-axis observer
+        self.onaxisTd = self.Rd/(2.*self.Gam0**2 * cts.cc)
+
+
+    def __onAxisTime(self):
+        # Observer time for on-axis observer (minus the on-axis deceleration time)
+        # So the code basically computes T-Td
+        self.onaxisTT = (self.RR**4.+3.*self.Rd**4.)/(8.*cts.cc*self.Rd**3.*self.Gam0**2.)  #+ self.onaxisTD
+
+
+    def __minGam(self, RR):
+        # Calculate minimum electron Lorentz factor at current R and
+        # corresponding synchrotron characteristic frequency
+
+        self.GamMin, self.nuGM = self.minGam(self.RR)
+
+
+    def __critGam(self, RR):
+        # Calculate critical Lorentz factor for efficient cooling at R and
+        # corresponding synchrotron characteristic frequency
+
+        self.GamCrit, self.nuCrit = self.critGam(self.RR)
+
+
+    def __fluxMax(self):
+        # Calculate maximum spectral flux -> Units energy/(time freq area)
+        # (to be multplied by the solid angle covered by the segment) and divided by 1/(4 pi D**2)
+
+        self.FnuMax = self.fluxMax()
+
+    def __Gam(self):
+        # Calculate the bulk Lorentz factor as a function of the radius of the shell
+        self.Gam = (self.Rd/self.RR)**(3./2.) * self.Gam0
+
+
+
+# ========== Public methods ==========================================================================================================
+
+
+
+    def obsTime(self, theta):
+        # Observer time for an off-axis observer or point at an angle theta
+        return cos(theta)*self.onaxisTT + self.RR/cts.cc * (1.-cos(theta))
+
+
+    def charFreq(self, gamE):
+        # Calculate characteristic synchrotron frequency in observer frame
+
+        BB = (32.*pi*cts.mp*self.epB*self.nn)**(1./2.)*self.Gam*cts.cc
+        return self.Gam*gamE**2.*cts.qe*BB/(2.*pi*cts.me*cts.cc)
+
+
+    def onAxisR(self, tt):
+        # Calculate radius of the shell as a function of the on-axis observer time
+        return (8.* cts.cc*self.Gam0**2. *self.Rd**3.*tt - 3.*self.Rd**4.)**(1./4.)
+
+
+    def minGam(self, RR):
+        # Calculate minimum electron lorentz factor and the associated characteristic frequencies
+
+        GamMin   = self.epE*(self.pp-2.)/(self.pp-1.) * cts.mp/cts.me * self.Gam0*(self.Rd/RR)**(3./2.)
+        nuGM     = self.charFreq(GamMin)
+
+        return GamMin, nuGM
+
+    def critGam(self, RR):
+        # Calculate the Critial lorentz factor for efficient synchrotron cooling and associated characteristic frequency
+
+        GamCrit  = 3.*cts.me/(2.*self.epB*cts.sigT*cts.mp*self.nn) * self.Rd**3./self.Gam0 * (
+                    RR/self.Rd)**(9./2.) * 1./(RR**4.+3.*self.Rd**4.)
+        nuCrit   = self.charFreq(GamCrit)
+
+        return GamCrit, nuCrit
+
+    def fluxMax(self):
+
+        fmax = 4.*pi/3. * cts.me*cts.cc**3.*cts.sigT/(3*cts.qe)*(32.*pi*cts.mp*self.epB)**(1./2.
+                            ) * self.nn**(3./2.) * self.Gam0**2. * self.Rd**3./(4.*pi*self.DD**2.)
+
+        return fmax
+
+
+    def FluxNuSC(self, nu):
+        """
+        Spectral flux distribution for fast cooling phase.
+        Equation 7 in Sari and Piran 1997
+        """
+        flux = zeros(len(nu))
+
+        flux[nu<self.nuGM] = (nu[nu<self.nuGM]/self.nuGM)**(1./3.) * self.FnuMax
+
+        flux[(nu>=self.nuGM) & (nu<self.nuCrit)] = (
+                 (nu[(nu>=self.nuGM) & (nu<self.nuCrit)]/self.nuGM)**(-1.*(self.pp-1.)/2.) * self.FnuMax)
+
+        flux[nu>=self.nuCrit] = (self.nuCrit/self.nuGM)**(-1.*(self.pp-1.)/2.) * (
+            nu[nu>=self.nuCrit]/self.nuCrit)**(-1.*self.pp/2.) * self.FnuMax
+
+        return flux
+
+
+    def FluxNuFC(self, nu):
+        """
+        Spectral flux distribution for fast cooling phase.
+        Equation 8 in Sari and Piran 1997.
+        """
+        flux = zeros(len(nu))
+
+        flux[nu<self.nuCrit] = (nu[nu<self.nuCrit]/self.nuCrit)**(1./3.) * self.FnuMax
+
+        flux[(nu>=self.nuCrit) & (nu<self.nuGM)] = (
+                 nu[(nu>=self.nuCrit) & (nu<self.nuGM)]/self.nuCrit)**(-1./2.) * self.FnuMax
+
+        flux[nu>=self.nuGM] = (self.nuGM/self.nuCrit)**(-1./2.) * (
+            nu[nu>=self.nuGM]/self.nuGM)**(-self.pp/2.)*self.FnuMax
+
+        return flux
+
+
+
+    def updateAG(self, rr):
+        # Update the shock radius and on-axis observer time
+        self.RR = rr
+        self.__Gam()
+        self.__onAxisTime()
+        self.__minGam(rr)
+        self.__critGam(rr)
+        self.__fluxMax()
+
+
+#=====================================================================================================================================================#
+#=====================================================================================================================================================#
+#=====================================================================================================================================================#
+
+
 class afterglow:
 
 #E, Gam0, nn, epE, epB, pp, tt0, agtype):
@@ -116,10 +280,10 @@ class afterglow:
 
         tt = self.tt/cts.sTd          # time in days
         gam = self.Gam/100            # Lorentz factor in unit of 100
-        EE = self.EE/1.e45            # In units of 10**45 Joules (10**52 ergs)
+        EE = self.EE/1.e52            # In units of 10**52 ergs
         DD = self.DD/1.e26            # In units of 10**28 cm
-        nn = self.nn/1.e6             # In units of cm**3.
-
+        #nn = self.nn/1.e6             # In units of cm**3.
+        nn = self.nn
         if self.agtype == "adiabatic":
             self.ttrans = 210.*(self.epB * self.epE)**2. * EE * nn
         elif self.agtype == "radiative":
@@ -132,13 +296,13 @@ class afterglow:
         """
 
         tt = self.tt/cts.sTd          # time in days
-        EE = self.EE/1.e45            # In units of 10**45 Joules (10**52 ergs)
-        DD = self.DD/1.e26            # In units of 10**28 cm
-        nn = self.nn/1.e6             # In units of cm**3.
-
+        EE = self.EE/1.e52            # In units of 10**52 ergs
+        DD = self.DD/1.e28            # In units of 10**28 cm
+        #nn = self.nn/1.e6             # In units of cm**3.
+        nn = self.nn
         self.nuCrit = 2.7e12*self.epB**(-3./2.)*EE**(-1./2.)*nn**(-1.)*tt**(-1./2.)
         self.nuGM   = 5.7e14*self.epB**(1./2.)*self.epE**2.*EE**(1./2.)*tt**(-3./2.)
-        self.FnuMax  = 1.1e-1*self.epB**(1./2.)*EE*nn**(1./2.)*DD**(-2.) # In Joules (extra factor of 1e6 when compared to paper)
+        self.FnuMax  = 1.1e5*self.epB**(1./2.)*EE*nn**(1./2.)*DD**(-2.) # In micro Janskys (extra factor of 1e6 when compared to paper)
 
 
     def __radiativeEvolution(self):
@@ -149,13 +313,13 @@ class afterglow:
 
         tt = self.tt/cts.sTd      # time in days
         gam = self.Gam/100.       # Lorentz factor in units of 100
-        EE = self.EE/1.e45           # In units of 10**52 ergs
-        DD = self.DD/1.e26        # In units of 10**28 cm
-        nn = self.nn/1.e6         # In units of cm**3
-
+        EE = self.EE/1.e52           # In units of 10**52 ergs
+        DD = self.DD/1.e28        # In units of 10**28 cm
+        #nn = self.nn/1.e6         # In units of cm**3
+        nn = self.nn
         self.nuCrit = 1.3e13*self.epB**(-3./2.)*EE**(-4./7.)*nn**(-13./14)*tt**(-2./7.)
         self.nuGM   = 1.2e14*self.epB**(1./2.)*self.epE**2.*EE**(4./7.)*nn**(-1./14)*tt**(-12./7.)
-        self.FnuMax  = 4.5e-3*self.epB**(1./2.)*EE**(8./7.)*gam**(-8./7.)*nn**(5./14.)*DD**(-2.)*tt**(-3./7.) # In Joules (extra factor of 1e6 when compared to paper)
+        self.FnuMax  = 4.5e3*self.epB**(1./2.)*EE**(8./7.)*gam**(-8./7.)*nn**(5./14.)*DD**(-2.)*tt**(-3./7.) # In Joules (extra factor of 1e6 when compared to paper)
 
 
 
@@ -164,9 +328,9 @@ class afterglow:
         Critical frequency at which nu0 = nuCrit(tt0) = nuGM(tt0)
         """
         gam = self.Gam/100.
-        EE = self.EE/1.e45   # In units of 10**45 J (10**52 ergs)
-        nn = self.nn/1.e6    # In units of cm**3
-
+        EE = self.EE/1.e52   # In units of 10**52 ergs
+        #nn = self.nn/1.e6    # In units of cm**3
+        nn = self.nn
         if self.agtype == "adiabatic":
             self.nuT = 1.8e11*self.epB**(-5./2.) * self.epE**(-1.)*EE**(-1.)*nn**(-3./2.)
         elif self.agtype == "radiative":
@@ -202,6 +366,7 @@ class afterglow:
         return 4./3. * cts.sigT * cts.cc * self.Gam**2. * gamE**2. * self.BB**2./(8.*cts.pi)
 
 
+
     def FluxNuSC(self, nu):
         """
         Spectral flux distribution for fast cooling phase.
@@ -229,13 +394,49 @@ class afterglow:
 
         flux[nu<self.nuCrit] = (nu[nu<self.nuCrit]/self.nuCrit)**(1./3.) * self.FnuMax
 
-        flux[(nu>=self.nuCrit) & (nu[fil1]<self.nuGM)] = (
-                 nu[f(nu>=self.nuCrit) & (nu[fil1]<self.nuGM)]/self.nuCrit)**(-1./2.) * self.FnuMax
+        flux[(nu>=self.nuCrit) & (nu<self.nuGM)] = (
+                 nu[(nu>=self.nuCrit) & (nu<self.nuGM)]/self.nuCrit)**(-1./2.) * self.FnuMax
 
         flux[nu>=self.nuGM] = (self.nuGM/self.nuCrit)**(-1./2.) * (
             nu[nu>=self.nuGM]/self.nuGM)**(-self.pp/2.)*self.FnuMax
 
         return flux
+
+#    def FluxNuSC(self, nu):
+#        """
+#        Spectral flux distribution for fast cooling phase.
+#        Equation 7 in Sari and Piran 1997
+#        """
+#        flux = zeros(len(nu))
+
+#        flux[nu<self.nuGM] = (nu[nu<self.nuGM]/self.nuGM)**(1./3.) * self.FnuMax
+
+#        flux[(nu>=self.nuGM) & (nu<self.nuCrit)] = (
+#                 (nu[(nu>=self.nuGM) & (nu<self.nuCrit)]/self.nuGM)**(-1.*(self.pp-1.)/2.) * self.FnuMax)
+
+#        flux[nu>=self.nuCrit] = (self.nuCrit/self.nuGM)**(-1.*(self.pp-1.)/2.) * (
+#            nu[nu>=self.nuCrit]/self.nuCrit)**(-1.*self.pp/2.) * self.FnuMax
+
+#        return flux
+
+
+#    def FluxNuFC(self, nu):
+#        """
+#        Spectral flux distribution for fast cooling phase.
+#        Equation 8 in Sari and Piran 1997.
+#        """
+#        flux = zeros(len(nu))
+
+#        flux[nu<self.nuCrit] = (nu[nu<self.nuCrit]/self.nuCrit)**(1./3.) * self.FnuMax
+
+#        flux[(nu>=self.nuCrit) & (nu<self.nuGM)] = (
+#                 nu[(nu>=self.nuCrit) & (nu<self.nuGM)]/self.nuCrit)**(-1./2.) * self.FnuMax
+
+#        flux[nu>=self.nuGM] = (self.nuGM/self.nuCrit)**(-1./2.) * (
+#            nu[nu>=self.nuGM]/self.nuGM)**(-self.pp/2.)*self.FnuMax
+
+#        return flux
+
 
     def criticalTimes(self, nu):
         """
@@ -245,9 +446,9 @@ class afterglow:
         """
         nu = nu/(1.e15)
         gam = self.Gam/100.
-        EE = self.EE/1.e45   # In units of 10**45 J (10**52 ergs)
-        nn = self.nn/1.e6    # In units of cm**3
-
+        EE = self.EE/1.e52   # In units of 10**52 ergs
+        #nn = self.nn/1.e6    # In units of cm**3
+        nn = self.nn
         if self.agtype == "adiabatic":
             ttc = 7.3e-6*self.epB**(-3.)*EE**(-1.)*nn**(-2.)*nu**(-2.)
             ttm = 0.69*self.epB**(1./3.)*self.epE**(4./3.)*EE**(1./3.)*nu**(-2./3)
