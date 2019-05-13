@@ -9,7 +9,7 @@ class adiabatic_afterglow:
     Simple afterglow model assuming adiabatic evolution
     """
 
-    def __init__(self, EE, Gam0, nn, epE, epB, pp, DD):
+    def __init__(self, EE, Gam0, nn, epE, epB, pp, DD, steps):
         self.EE   = EE
         self.Gam0 = Gam0
         self.Beta0 = (1.-1./self.Gam0**2.)**(1./2.)
@@ -18,10 +18,11 @@ class adiabatic_afterglow:
         self.epB  = epB
         self.pp   = pp
         self.DD   = DD
+        self.steps = steps
         self.__decRad()
         self.__onAxisdecTime()
         #self.updateAG(self.Rd)
-
+        self._evolve()
 # ========== Private methods =======================================================================================================
 
 
@@ -42,6 +43,10 @@ class adiabatic_afterglow:
         # (to be multplied by the solid angle covered by the segment) and divided by 1/(4 pi D**2)
 
         self.FnuMax = self.fluxMax()
+
+    def _evolve(self):
+
+        self.RRs, self.Gams, self.TTs = self.evolve(self.steps)
 
 
     """

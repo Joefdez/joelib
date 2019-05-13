@@ -103,16 +103,34 @@ class jetHeadUD(adiabatic_afterglow):
         cosa -> cosine of observeration angle, obtained using obsangle
         """
 
-        beta = (1.-1./self.Gam**2.)**(1./2.)
+        betas = (1.-1./self.Gams**2.)**(1./2.)
 
         return (1.-beta)/(1.-beta*cosa)
 
 
+    def lightCurve(self, theta_obs, obsFreqs, RRs, nuMins, nuCrits, tt0, ttf, num):
+        """
+        Generate light curve
+        """
+        lt0 = log10(tt0)
+        ltf = log10(ttf)
+        tts, fac = self.timeBins(tt0, ttf, num)
 
+        calpha = self.obsangle(theta_obs)
+        alpha  = arccos(calpha)
+
+        light_curve   = zeros([len(obsFreqs), num+2])
+        flux_seg = zeros(len(alpha))
+
+        dopFacs = self.dopplerFactor(calpha)
+
+        return tts, light_curve
+
+
+    """
     def lightCurve(self, theta_obs, obsFreqs, tt0, ttf, num):
-        """
-        Generate the light curve at timepoints in tbins
-        """
+
+
 
         # Lines for handling multiple observed frequencies
 
@@ -155,3 +173,4 @@ class jetHeadUD(adiabatic_afterglow):
                     #print("Filling in"), ii, shape(tindex[tindex==ii]), sum(flux_seg[tindex==ii])
                     light_curve[obsFreqs==freq, ii] = light_curve[obsFreqs==freq, ii] +  sum(flux_seg[tindex==ii])
         return tts, light_curve
+        """
