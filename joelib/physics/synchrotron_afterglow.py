@@ -1,5 +1,7 @@
 from numpy import *
+from scipy.integrate import quad
 import joelib.constants.constants as cts
+
 
 
 
@@ -21,8 +23,10 @@ class adiabatic_afterglow:
         self.steps = steps
         self.__decRad()
         self.__onAxisdecTime()
+        self.__fluxMax()
         #self.updateAG(self.Rd)
-        self._evolve()
+        self.__evolve()
+#        self.__obsTime_onAxis()
 # ========== Private methods =======================================================================================================
 
 
@@ -30,6 +34,8 @@ class adiabatic_afterglow:
         # Deceleration radius of the jet
         self.Rd = (3./(4.*pi) * 1./(cts.cc**2.*cts.mp) *
                         self.EE/(self.nn*self.Gam0**2.))**(1./3.)
+        Beta0 = sqrt(1.-1./self.Gam0**(2.))
+        self.Td = self.Rd*(1.-Beta0)/(cts.cc*Beta0)
         #self.Td = self.Rd/(2.*self.Gam0**2 * cts.cc)
 
 
@@ -37,6 +43,8 @@ class adiabatic_afterglow:
         # Deceleration time for an on-axis observer
         self.onaxisTd = self.Rd/(2.*self.Gam0**2 * cts.cc)
 
+#    def __obsTime_onAxis(self):
+#        self.TTs = self.obsTime_onAxis()
 
     def __fluxMax(self):
         # Calculate maximum spectral flux -> Units energy/(time freq area)
@@ -44,9 +52,13 @@ class adiabatic_afterglow:
 
         self.FnuMax = self.fluxMax()
 
-    def _evolve(self):
+    def __evolve(self):
 
-        self.RRs, self.Gams, self.TTs = self.evolve(self.steps)
+        self.RRs, self.Gams, self.Betas = self.evolve(self.steps)
+        self.TTs = self.obsTime_onAxis()
+        self.Bfield = (32.*pi*cts.mp*self.epB*self.nn)**(1./2.)*self.Gams*cts.cc
+        self.gM, self.nuM = self.minGam()
+        self.gC, self.nuC = self.critGam()
 
 
     """
@@ -81,37 +93,33 @@ class adiabatic_afterglow:
 
 
 
-    def obsTime(self, theta):
-        # Observer time for an off-axis observer or point at an angle theta
-        return cos(theta)*self.onaxisTT + self.RR/cts.cc * (1.-cos(theta))
-
-
-    def charFreq(self, gamE):
+    def charFreq(self, gamE, Gam, Bf):
         # Calculate characteristic synchrotron frequency in observer frame
 
-        BB = (32.*pi*cts.mp*self.epB*self.nn)**(1./2.)*self.Gam*cts.cc
-        return self.Gam*gamE**2.*cts.qe*BB/(2.*pi*cts.me*cts.cc)
+        #BB = (32.*pi*cts.mp*self.epB*self.nn)**(1./2.)*self.Gam*cts.cc
+        return Gam*gamE**2.*cts.qe*Bf/(2.*pi*cts.me*cts.cc)
 
 
-    def onAxisR(self, tt):
+    #def onAxisR(self, tt):
         # Calculate radius of the shell as a function of the on-axis observer time
-        return (8.* cts.cc*self.Gam0**2. *self.Rd**3.*tt - 3.*self.Rd**4.)**(1./4.)
+    #    return (8.* cts.cc*self.Gam0**2. *self.Rd**3.*tt - 3.*self.Rd**4.)**(1./4.)
 
 
-    def minGam(self, RR):
+    def minGam(self):
         # Calculate minimum electron lorentz factor and the associated characteristic frequencies
 
-        GamMin   = self.epE*(self.pp-2.)/(self.pp-1.) * cts.mp/cts.me * self.Gam0*(self.Rd/RR)**(3./2.)
-        nuGM     = self.charFreq(GamMin)
+        GamMin   = self.epE*(self.pp-2.)/(self.pp-1.) * cts.mp/cts.me * self.Gams
+        nuGM     = self.charFreq(GamMin, self.Gams, self.Bfield)
 
         return GamMin, nuGM
 
-    def critGam(self, RR):
+    def critGam(self): #, TT, Gam, Bf):
         # Calculate the Critial lorentz factor for efficient synchrotron cooling and associated characteristic frequency
 
-        GamCrit  = 3.*cts.me/(4.*self.epB*cts.sigT*cts.mp*self.nn) * self.Rd**3./self.Gam0 * (
-                    RR/self.Rd)**(9./2.) * 1./(RR**4.+3.*self.Rd**4.)
-        nuCrit   = self.charFreq(GamCrit)
+        #GamCrit  = 3.*cts.me/(4.*self.epB*cts.sigT*cts.mp*self.nn) * self.Rd**3./self.Gam0 * (
+        #            RR/self.Rd)**(9./2.) * 1./(RR**4.+3.*self.Rd**4.)
+        GamCrit =  3.*pi*cts.me/(16.*self.epB*cts.sigT*cts.mp*cts.cc*self.Gams**3.*self.TTs*self.nn)
+        nuCrit   = self.charFreq(GamCrit, self.Gams, self.Bfield)
 
         return GamCrit, nuCrit
 
@@ -160,29 +168,63 @@ class adiabatic_afterglow:
 
         return flux
 
-
+    """
     def obsTime_onAxis(self, RR):
 
         return (RR**4.+3.*self.Rd**4.)/(8.*cts.cc*self.Rd**3.*self.Gam0**2.)
+    """
+
+    def timeIntegrand(self, RR):
+        Gam  = (self.Rd/RR)**(3./2.) * self.Gam0
+        Beta = sqrt(1. - 1./Gam**2.)
+
+        #return (1-Beta)/(cts.cc*Beta)
+
+        return 1./(cts.cc*Gam**2.*Beta*(1.+Beta))
+
+    def obsTime_onAxis(self):
+
+        "Very crude numerical integration to obtain the on-axis observer time"
+        #timeDiff = (1.-self.Betas)/(cts.cc*self.Betas)
+        #return cumsum(timeDiff[:-1]*diff(self.RRs)) + self.Td
+
+        fil1 = self.RRs<=self.Rd
+        fil2 = self.RRs>self.Rd
+
+        TTs = zeros(len(self.Betas))
+        TT  = zeros(len(self.Betas[fil2]))
+        TTs[fil1] = self.RRs[fil1]/(
+                            cts.cc*self.Beta0*self.Gam0**2.*(1.+self.Beta0))
+        for ii in range(1,len(self.Betas[fil2])):
+            TT[ii] = quad(self.timeIntegrand, self.Rd, self.RRs[fil2][ii])[0]
+
+
+        TTs[fil2] = TT + self.Td
+
+        return TTs
 
 
     def obsTime_offAxis(self, RR, TT, theta):
         # Calculate the off-axis time at an angle theta, radius RR and observer time TT
         #tt = obsTime_onAxis(RR)
 
-        return TT*cos(theta) + RR/cts.cc * (1.-cos(theta))
+        #return TT*cos(theta) + RR/cts.cc * (1.-cos(theta))
+
+        return TT + RR/cts.cc * (1.-cos(theta))
 
 
     def evolve(self, steps):
         Gam  = self.Gam0
         Rf   = Gam**(2./3.) *self.Rd        # Radius at Lorentz factor=1
+        RRs   = logspace(log10(self.Rd/100.), log10(Rf), steps) #10
+        Gams  = zeros(len(RRs))
+        Gams[RRs<=self.Rd] = self.Gam0
+        Gams[RRs>self.Rd]  = (self.Rd/RRs[RRs>self.Rd])**(3./2.) * self.Gam0
+        Betas = sqrt(1.-1./Gams**2.)
+        Betas[-1] = 0.0
 
-        RRs  = logspace(self.Rd, Rf, steps)
-        Gams = (self.Rd/RRs)**(3./2.) * self.Gam0
 
-        TT   = obsTime_onAxis(RRs)
-
-        return RRs, Gams, TT
+        return RRs, Gams, Betas
 
 
 
