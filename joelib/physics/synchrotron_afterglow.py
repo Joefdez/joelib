@@ -1,6 +1,9 @@
 from numpy import *
-from scipy.integrate import quad
+from scipy.integrate import quad, trapz
+from scipy.integrate import odeint
+from scipy.interpolate import interp1d
 import joelib.constants.constants as cts
+from joelib.toolbox.toolBox import rk4
 
 
 
@@ -11,7 +14,7 @@ class adiabatic_afterglow:
     Simple afterglow model assuming adiabatic evolution
     """
 
-    def __init__(self, EE, Gam0, nn, epE, epB, pp, DD, steps):
+    def __init__(self, EE, Gam0, nn, epE, epB, pp, DD, steps, evolution):
         self.EE   = EE
         self.Gam0 = Gam0
         self.Beta0 = (1.-1./self.Gam0**2.)**(1./2.)
@@ -21,11 +24,13 @@ class adiabatic_afterglow:
         self.pp   = pp
         self.DD   = DD
         self.steps = steps
+        self.evolution = evolution
         self.__decRad()
         self.__onAxisdecTime()
-        self.__fluxMax()
         #self.updateAG(self.Rd)
         self.__evolve()
+        self.__fluxMax()
+        self.FnuMI = interp1d(self.RRs, self.FnuMax)
 #        self.__obsTime_onAxis()
 # ========== Private methods =======================================================================================================
 
@@ -54,11 +59,19 @@ class adiabatic_afterglow:
 
     def __evolve(self):
 
-        self.RRs, self.Gams, self.Betas = self.evolve(self.steps)
+        if self.evolution == "adiabatic":
+            self.RRs, self.Gams, self.Betas, self.Rsd = self.evolve_ad()
+        elif self.evolution == "peer":
+            self.RRs, self.Gams, self.Betas, self.Rsd = self.evolve_relad()
+
+        self.GamInt = interp1d(self.RRs, self.Gams)
         self.TTs = self.obsTime_onAxis()
         self.Bfield = (32.*pi*cts.mp*self.epB*self.nn)**(1./2.)*self.Gams*cts.cc
         self.gM, self.nuM = self.minGam()
         self.gC, self.nuC = self.critGam()
+        self.gamMI, self.gamCI = interp1d(self.RRs, self.gM), interp1d(self.RRs, self.gC)
+        self.nuMI, self.nuCI = interp1d(self.RRs, self.nuM), interp1d(self.RRs, self.nuC)
+
 
 
     """
@@ -125,48 +138,98 @@ class adiabatic_afterglow:
 
     def fluxMax(self):
 
-#        fmax = 4.*pi/3. * cts.me*cts.cc**3.*cts.sigT/(3*cts.qe)*(32.*pi*cts.mp*self.epB)**(1./2.
-#                            ) * self.nn**(3./2.) * self.Gam0**2. * self.Rd**3./(4.*pi*self.DD**2.)
-        fmax = 2.*cts.me*cts.cc**3.*cts.sigT/(9*cts.qe)*(32.*pi*cts.mp*self.epB)**(1./2.
-                            ) * self.nn**(3./2.) * self.Gam0**2. * self.Rd**3./(self.DD**2.)
+        # Per unit solid angle!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+        #fmax = zeros([len(self.RRs)])
+        #fil1 = self.RRs<=self.Rd
+        #fil2 = self.RRs>self.Rd
+        #fmax[fil1]  = self.nn**(3./2.)*self.RRs[fil1]**3. * cts.sigT * cts.cc**3. *cts.me* (32.*pi*cts.mp*self.epB
+        #                    )**(1./2.)*self.Gam0**2./(9.*cts.qe*self.DD**2.)
+        #fmax[fil2]  = self.nn**(3./2.)*self.Rd**3. * cts.sigT * cts.cc**3. *cts.me* (32.*pi*cts.mp*self.epB
+                            #)**(1./2.)*self.Gam0**2./(9.*cts.qe*self.DD**2.)
+        fmax  = self.nn**(3./2.)*self.RRs**3. * cts.sigT * cts.cc**3. *cts.me* (32.*pi*cts.mp*self.epB
+                             )**(1./2.)*self.Gams**2./(9.*cts.qe*self.DD**2.)
         return fmax
 
 
-    def FluxNuSC(self, nuGM, nuCrit, nu):
+    def FluxNuSC(self, nuGM, nuCrit, FnuMax, nu):
         """
         Spectral flux distribution for fast cooling phase.
         Equation 7 in Sari and Piran 1997
         """
         flux = zeros(len(nu))
-
-        flux[nu<nuGM] = (nu[nu<nuGM]/nuGM)**(1./3.) * self.FnuMax
+        #
+        #print shape(flux), shape(nuGM), shape(nuCrit), shape(nu) , shape(FnuMax)
+        flux[nu<nuGM] = (nu[nu<nuGM]/nuGM)**(1./3.) * FnuMax
 
         flux[(nu>=nuGM) & (nu<nuCrit)] = (
-                 (nu[(nu>=nuGM) & (nu<nuCrit)]/nuGM)**(-1.*(self.pp-1.)/2.) * self.FnuMax)
+                 (nu[(nu>=nuGM) & (nu<nuCrit)]/nuGM)**(-1.*(self.pp-1.)/2.) * FnuMax)
 
         flux[nu>=nuCrit] = (nuCrit/nuGM)**(-1.*(self.pp-1.)/2.) * (
-            nu[nu>=nuCrit]/nuCrit)**(-1.*self.pp/2.) * self.FnuMax
+            nu[nu>=nuCrit]/nuCrit)**(-1.*self.pp/2.) * FnuMax
 
         return flux
 
 
-    def FluxNuFC(self, nuGM, nuCrit, nu):
+    def FluxNuFC(self, nuGM, nuCrit, FnuMax, nu):
         """
         Spectral flux distribution for fast cooling phase.
         Equation 8 in Sari and Piran 1997.
         """
         flux = zeros(len(nu))
 
-        flux[nu<nuCrit] = (nu[nu<nuCrit]/nuCrit)**(1./3.) * self.FnuMax
+        flux[nu<nuCrit] = (nu[nu<nuCrit]/nuCrit)**(1./3.) * FnuMax
 
         flux[(nu>=nuCrit) & (nu<nuGM)] = (
-                 nu[(nu>=nuCrit) & (nu<nuGM)]/nuCrit)**(-1./2.) * self.FnuMax
+                 nu[(nu>=nuCrit) & (nu<nuGM)]/nuCrit)**(-1./2.) * FnuMax
 
         flux[nu>=nuGM] = (nuGM/nuCrit)**(-1./2.) * (
-            nu[nu>=nuGM]/nuGM)**(-self.pp/2.)*self.FnuMax
+            nu[nu>=nuGM]/nuGM)**(-self.pp/2.)*FnuMax
 
         return flux
+
+
+    def FluxNuSC_arr(self, nuGM, nuCrit, FnuMax, nu):
+        """
+        Spectral flux distribution for fast cooling phase.
+        Equation 7 in Sari and Piran 1997
+        """
+        flux = zeros(len(nu))
+        #print shape(flux), shape(nuGM), shape(nuCrit), shape(nu) , shape(FnuMax)
+        fil1 = nu<nuGM
+        fil2 = (nu>=nuGM) & (nu<nuCrit)
+        fil3 = nu>=nuCrit
+
+        flux[fil1] = (nu[fil1]/nuGM[fil1])**(1./3.) * FnuMax[fil1]
+
+        flux[fil2] = ((nu[fil2]/nuGM[fil2])**(-1.*(self.pp-1.)/2.) * FnuMax[fil2])
+
+        flux[fil3] = (nuCrit[fil3]/nuGM[fil3])**(-1.*(self.pp-1.)/2.) * (
+            nu[fil3]/nuCrit[fil3])**(-1.*self.pp/2.) * FnuMax[fil3]
+
+        return flux
+
+
+    def FluxNuFC_arr(self, nuGM, nuCrit, FnuMax, nu):
+        """
+        Spectral flux distribution for fast cooling phase.
+        Equation 8 in Sari and Piran 1997.
+        """
+        flux = zeros(len(nu))
+
+        #fil1 =
+
+
+        flux[nu<nuCrit] = (nu[nu<nuCrit]/nuCrit)**(1./3.) * FnuMax
+
+        flux[(nu>=nuCrit) & (nu<nuGM)] = (
+            nu[(nu>=nuCrit) & (nu<nuGM)]/nuCrit)**(-1./2.) * FnuMax
+
+        flux[nu>=nuGM] = (nuGM/nuCrit)**(-1./2.) * (
+            nu[nu>=nuGM]/nuGM)**(-self.pp/2.)*FnuMax
+
+        return flux
+
 
     """
     def obsTime_onAxis(self, RR):
@@ -182,27 +245,42 @@ class adiabatic_afterglow:
 
         return 1./(cts.cc*Gam**2.*Beta*(1.+Beta))
 
+
+    #def timeIntegrand
+
     def obsTime_onAxis(self):
 
         "Very crude numerical integration to obtain the on-axis observer time"
         #timeDiff = (1.-self.Betas)/(cts.cc*self.Betas)
         #return cumsum(timeDiff[:-1]*diff(self.RRs)) + self.Td
 
-        fil1 = self.RRs<=self.Rd
-        fil2 = self.RRs>self.Rd
+        #fil1 = self.RRs<=self.Rd
+        #fil2 = (self.RRs>self.Rd)
 
         TTs = zeros(len(self.Betas))
-        TT  = zeros(len(self.Betas[fil2]))
-        TTs[fil1] = self.RRs[fil1]/(
-                            cts.cc*self.Beta0*self.Gam0**2.*(1.+self.Beta0))
-        for ii in range(1,len(self.Betas[fil2])):
-            TT[ii] = quad(self.timeIntegrand, self.Rd, self.RRs[fil2][ii])[0]
 
+        #TT  = zeros(len(self.Betas[fil2]))
+        #TTs[fil1] = self.RRs[fil1]/(
+        #                    cts.cc*self.Beta0*self.Gam0**2.*(1.+self.Beta0))
 
-        TTs[fil2] = TT + self.Td
+        integrand = 1./(cts.cc*self.Gams**2.*self.Betas*(1.+self.Betas))
+
+        #valf = 1./(cts.cc*self.Gams[fil1][-1]**2.*self.Betas[fil1][-1]*(1.+self.Betas[fil1][-1]))
+        #TTs[fil2][0] = trapz(array([self.RRs[fil1][-1],self.RRs[fil2][0]]), array([valf, integrand[0]])) +  self.Td
+        TTs[0] = self.RRs[0]/(cts.cc*self.Gams[0]**2.*self.Betas[0]*(1.+self.Betas[0]))
+        for ii in range(1,len(self.Betas)):
+        #for ii in range(1, len(self.Betas[fil2])):
+            #TTs[ii] = quad(self.timeIntegrand, self.RRs[ii-1], self.RRs[ii])[0] + TTs[ii-1]
+            TTs[ii] = trapz(integrand[0:ii+1], self.RRs[0:ii+1]) + TTs[0]
+
+    #    TTs[fil2] = TT #+ self.Td
+
 
         return TTs
 
+
+
+        return TTs
 
     def obsTime_offAxis(self, RR, TT, theta):
         # Calculate the off-axis time at an angle theta, radius RR and observer time TT
@@ -213,18 +291,83 @@ class adiabatic_afterglow:
         return TT + RR/cts.cc * (1.-cos(theta))
 
 
-    def evolve(self, steps):
+
+    # Evolution of the blast wave as given in Pe'er 2012
+
+    def normT(self, gamma, beta):
+        mom = gamma*beta
+
+        return mom/3. * (mom + 1.07*mom**2.)/(1+mom+1.07*mom**2.)
+
+    def adabatic_index(self, theta):
+        zz = theta/(0.24+theta)
+
+        return (5-1.21937*zz+0.18203*zz**2.-0.96583*zz**3.+2.32513*zz**4.-2.39332*zz**5.+1.07136*zz**6.)/3.
+
+    def dgdm(self, gam, mm):
+        beta = sqrt(1-1./gam**2.)
+        TT = self.normT(gam, beta)
+        ada = self.adabatic_index(TT)
+        #numerator = -4.*pi*self.nn*cts.mp*rr**2. * ( ada*(gam**2.-1)-(ada-1)*gam*beta**2  )
+        #denominator = self.EE/(self.Gam0*cts.cc**2.) + 4./3.*pi*self.nn*cts.mp*rr**3.*(2.*ada*gam-(ada-1)*(1.+gam**(-2)))
+        numerator = -( ada*(gam**2.-1)-(ada-1)*gam*beta**2  )
+        denominator = self.EE/(self.Gam0*cts.cc**2.) + mm*(2.*ada*gam-(ada-1)*(1.+gam**(-2)))
+
+        return numerator/denominator
+
+
+    #############################################################3
+
+
+    def evolve_ad(self):
+        """
+        Evolution following simple energy conservation for an adiabatically expanding relativistic shell. Same scaling as
+        Blanford-Mckee blastwave solution. This calculation is only valid in ultrarelativstic phase.
+        """
         Gam  = self.Gam0
-        Rf   = Gam**(2./3.) *self.Rd        # Radius at Lorentz factor=1
-        RRs   = logspace(log10(self.Rd/100.), log10(Rf), steps) #10
+        GamSD = 1.021
+        Rsd   = Gam**(2./3.) *self.Rd / GamSD       # Radius at Lorentz factor=1.005 -> after this point use Sedov-Taylor scaling
+        Rl    = self.Rd * Gam**(2./3.)
+        RRs   = logspace(log10(self.Rd/10.), log10(Rl), self.steps+1) #10
+
         Gams  = zeros(len(RRs))
         Gams[RRs<=self.Rd] = self.Gam0
         Gams[RRs>self.Rd]  = (self.Rd/RRs[RRs>self.Rd])**(3./2.) * self.Gam0
+        #Gams[RRs>=Rsd] = 1./sqrt( 1.-(Rsd/RRs[RRs>=Rsd])**(6.)*(1.-1./(Gams[(RRs>self.Rd) & (RRs<Rsd)][-1]**2.)))
+        #Gams[RRs>=self.Rd] = odeint(self.dgdr, self.Gam0, RRs[RRs>=self.Rd])[:,0]
+        #Gams[RRs>=self.Rd] = odeint(self.dgdr, self.Gam0, RRs[RRs>=self.Rd])[:,0]
         Betas = sqrt(1.-1./Gams**2.)
         Betas[-1] = 0.0
 
 
-        return RRs, Gams, Betas
+        return RRs, Gams, Betas, Rsd
+
+
+    def evolve_relad(self):
+        """
+        Evolution following Pe'er 2012. Adbaiatic expansion into a cold, uniform ISM using conservation of energy in relativstic form. This solution
+        transitions smoothly from the ultra-relativistic to the Newtonian regime.
+
+        """
+        Gam  = self.Gam0
+        GamSD = 1.021
+        Rsd   = Gam**(2./3.) *self.Rd / GamSD       # Radius at Lorentz factor=1.005 -> after this point use Sedov-Taylor scaling
+        Rl    = self.Rd * Gam**(2./3.)
+        RRs   = logspace(log10(self.Rd/100.), log10(Rl)+3., self.steps) #10
+        MMs    = 4./3. *pi*cts.mp*self.nn*RRs**3.
+
+        Gams  = zeros(len(RRs))
+        Gams[0] = Gam
+
+        for ii in range(1,self.steps):
+            Gams[ii] = rk4(self.dgdm, MMs[ii], Gams[ii-1], (MMs[ii]-MMs[ii-1]))
+
+
+        Betas = sqrt(1.-1./Gams**2.)
+        #Betas[-1] = 0.0
+
+        return RRs, Gams, Betas, Rsd
+
 
 
 
@@ -467,41 +610,6 @@ class afterglow:
             nu[nu>=self.nuGM]/self.nuGM)**(-self.pp/2.)*self.FnuMax
 
         return flux
-
-#    def FluxNuSC(self, nu):
-#        """
-#        Spectral flux distribution for fast cooling phase.
-#        Equation 7 in Sari and Piran 1997
-#        """
-#        flux = zeros(len(nu))
-
-#        flux[nu<self.nuGM] = (nu[nu<self.nuGM]/self.nuGM)**(1./3.) * self.FnuMax
-
-#        flux[(nu>=self.nuGM) & (nu<self.nuCrit)] = (
-#                 (nu[(nu>=self.nuGM) & (nu<self.nuCrit)]/self.nuGM)**(-1.*(self.pp-1.)/2.) * self.FnuMax)
-
-#        flux[nu>=self.nuCrit] = (self.nuCrit/self.nuGM)**(-1.*(self.pp-1.)/2.) * (
-#            nu[nu>=self.nuCrit]/self.nuCrit)**(-1.*self.pp/2.) * self.FnuMax
-
-#        return flux
-
-
-#    def FluxNuFC(self, nu):
-#        """
-#        Spectral flux distribution for fast cooling phase.
-#        Equation 8 in Sari and Piran 1997.
-#        """
-#        flux = zeros(len(nu))
-
-#        flux[nu<self.nuCrit] = (nu[nu<self.nuCrit]/self.nuCrit)**(1./3.) * self.FnuMax
-
-#        flux[(nu>=self.nuCrit) & (nu<self.nuGM)] = (
-#                 nu[(nu>=self.nuCrit) & (nu<self.nuGM)]/self.nuCrit)**(-1./2.) * self.FnuMax
-
-#        flux[nu>=self.nuGM] = (self.nuGM/self.nuCrit)**(-1./2.) * (
-#            nu[nu>=self.nuGM]/self.nuGM)**(-self.pp/2.)*self.FnuMax
-
-#        return flux
 
 
     def criticalTimes(self, nu):
