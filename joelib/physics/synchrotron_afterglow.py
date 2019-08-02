@@ -9,13 +9,13 @@ from joelib.toolbox.toolBox import rk4
 #############################################################################################################
 
 
-data_xp = genfromtxt('joelib/Xp.csv', delimiter=',')
+data_xp = genfromtxt('joelib/Xp.dat')
 
 Xint = interp1d(data_xp[:,0], data_xp[:,1])
 
-data_phip = genfromtxt('joelib/PhiP.csv', delimiter='.')
+data_phip = genfromtxt('joelib/PhiP.dat')
 
-PhiPint = interp1d(data_phip[:,0], data_phip[:,2])
+PhiPint = interp1d(data_phip[:,0], data_phip[:,1])
 
 
 #############################################################################################################
@@ -84,7 +84,7 @@ def minGam_modified(Gam, epE, epB, nn, pp, Bfield, Xp):
 
     GamMin    = 1. + cts.mp/cts.me * (pp-2.)/(pp-1.) * epE * (Gam - 1.)
     #Bfield    = sqrt(32. * pi * cts.mp * cts.cc**2. * epB * nn * Gam*(Gam-1))
-    nuGM      = 3.*Xp*GamMin**2.*cts.qe*Bfield/(4.*pi*cts.me*cts.cc)
+    nuGM      = 3.*Xp*Gam*GamMin**2.*cts.qe*Bfield/(4.*pi*cts.me*cts.cc)
 
     return GamMin, nuGM
 
@@ -95,19 +95,19 @@ def critGam_modified(Gam, epE, epB, nn, pp, Bfield, tt):
 
     #Bfield    = sqrt(32. * pi * cts.mp * cts.cc**2. * epB * nn * Gam*(Gam-1))
     GamCrit   = 6.*pi*cts.me*cts.cc/(cts.sigT*Gam*tt*Bfield**2.)
-    nuCrit   = 0.286*3*GamCrit**2. * cts.qe * Bfield/(4.*pi*cts.me*cts.cc)
+    nuCrit   = 0.286*3*Gam*GamCrit**2. * cts.qe * Bfield/(4.*pi*cts.me*cts.cc) # Gam factor to convert to observer frame
 
     return GamCrit, nuCrit
 
 
 def fluxMax_modified(RR, Gam, nn, Bfield, DD, PhiP):
 
-    fmax = sqrt(3)*nn*RR**3.*cts.qe**3.*Bfield/(3.*cts.me*cts.cc**2.*DD**2.) *PhiP
+    fmax = sqrt(3)*nn*RR**3.*cts.qe**3.*Bfield/(3.*cts.me*cts.cc**2.*4.*pi*DD**2.) *PhiP #
 
     return fmax
 
 
-########### Spectra functions ###############################################################################
+########### Spectral functions ###############################################################################
 
 
 def FluxNuSC(jet, nuGM, nuCrit, FnuMax, nu):
@@ -347,6 +347,7 @@ def evolve_relad(jet):
     Evolution following Pe'er 2012. Adbaiatic expansion into a cold, uniform ISM using conservation of energy in relativstic form. This solution
     transitions smoothly from the ultra-relativistic to the Newtonian regime.
     """
+    adas = zeros(jet.steps+1)
     Gam  = jet.Gam0
     GamSD = 1.021
     Rsd   = Gam**(2./3.) *jet.Rd / GamSD       # Radius at Lorentz factor=1.005 -> after this point use Sedov-Taylor scaling
@@ -513,7 +514,7 @@ class adiabatic_afterglow:
             #self.RSpeak_nuM = 9.6e14 * epE**2. * epB**(1./2.) * nn**(1./2) * Gam0**2.
             #self.RSpeak_nuC = 4.0e16 * epB**(-3./2.) * EE**(-2./3.) * nn**(-5./6.) * Gam0**(4./3.)
             #self.RSpeak_Fnu = 5.2 * DD**(-2.) * epB**(1./2.) * EE * nn**(1./2.) * Gam0
-            self.RSpeak_nuM  = self.nuMI(self.Rd)/(Gam0**2)3 #* self.Rb**(1./2.)
+            self.RSpeak_nuM  = self.nuMI(self.Rd)/(Gam0**2) #* self.Rb**(1./2.)
             self.RSpeak_nuC  = self.nuCI(self.Rd) #* self.Rb**(-3./2.)*
             self.RSpeak_Fnu =  Gam0*self.FnuMI(self.Rd)# * self.Rb**(1./2.)*
 
