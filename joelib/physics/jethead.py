@@ -310,33 +310,36 @@ class jetHeadUD(adiabatic_afterglow):
         calpha = self.obsangle(theta_obs)
         alpha  = arccos(calpha)
 
+
+
         TTs, RRs, Gams, Betas = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
         nuMs, nuCs, fluxes    = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
         im_xxs = sin(self.cthetas)*cos(self.cphis)
-        im_yys = (1.-sin(alpha))*cos(alpha)*sin(self.cthetas)*sin(self.cphis) - (1.-cos(alpha))*sin(alpha)*cos(self.cthetas)
+        im_yys = cos(theta_obs)*sin(self.cthetas)*sin(self.cphis) - sin(theta_obs)*cos(self.cthetas)
 
 
         if self.evolution == 'adiabatic':
-            Tint = interp1d(self.TTs, self.RRs)
-            for ii in tdqm(range(self.ncells)):
+            Tint = interp1d(self.RRs, self.TTs)
+            for ii in tqdm(range(self.ncells)):
                 ttobs = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha[ii])
                 Rint = interp1d(ttobs, self.RRs)
                 RRs[ii] = Rint(tt_obs)
                 TTs[ii] = Tint(RRs[ii])
 
-                Gams[ii] = self.GamInt(Robs)
-                Betas[ii] = sqrt(1.-GamObs**(-2.))
+                Gams[ii] = self.GamInt(RRs[ii])
+                Betas[ii] = sqrt(1.-Gams[ii]**(-2.))
 
             Bf        = (32.*pi*self.nn*self.epB*cts.mp)**(1./2.) * Gams*cts.cc
             gamM, nuM = minGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf)
             gamC, nuC = critGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
-            fluxMax   = fluxMax(RRs, Gams, self.nn, Bf, self.DD)
+            fMax      = fluxMax(RRs, Gams, self.nn, Bf, self.DD)
 
             dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
-            afac = self.cellSize/maximum(self.cellSize*ones(num), 2.*pi*(1.-cos(1./Gams)))
+            afac = self.cellSize/maximum(self.cellSize*ones(len(Gams)), 2.*pi*(1.-cos(1./Gams)))
             obsFreqs = freq/dopFacs
 
-            fluxes = afac * dopFacs**3. * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)*calpha
+            fluxes = (self.DD/RRs)**2. *afac * dopFacs**3. * FluxNuSC_arr(self, nuM, nuC, fMax, obsFreqs)*1./calpha
+            #fluxes = afac * dopFacs**3. * FluxNuSC_arr(self, nuM, nuC, fMax, obsFreqs)*calpha
 
         elif self.evolution == 'peer':
             Tint = interp1d(self.RRs, self.TTs)
@@ -352,17 +355,81 @@ class jetHeadUD(adiabatic_afterglow):
             Bf        = Bfield_modified(Gams, Betas, self.nn, self.epB)
             gamM, nuM = minGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, self.Xp)
             gamC, nuC = critGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
-            fluxMax   = fluxMax_modified(RRs, Gams, self.nn, Bf, self.DD, self.PhiP)
+            fMax   = fluxMax_modified(RRs, Gams, self.nn, Bf, self.DD, self.PhiP)
 
             dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
             obsFreqs = freq/dopFacs
 
-            fluxes = self.cellSize * (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)#*calpha
+            fluxes = (self.DD/RRs)**2. * self.cellSize * (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fMax, obsFreqs)*1./calpha
+            #fluxes = self.cellSize * (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fMax, obsFreqs)#*calpha
 
 
 
         im_xxs = RRs*im_xxs
         im_yys = RRs*im_yys
+
+        return im_xxs, im_yys, fluxes, RRs, Gams, calpha, TTs
+
+    def skymap_2(self, theta_obs, tt_obs, freq, nx, ny, xx0, yy0):
+
+        calpha = self.obsangle(theta_obs)
+        alpha  = arccos(calpha)
+
+        TTs, RRs, Gams, Betas = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
+        nuMs, nuCs, fluxes    = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
+        im_xxs = sin(self.cthetas)*cos(self.cphis)
+        im_yys = cos(alpha)*sin(self.cthetas)*sin(self.cphis) - sin(alpha)*cos(self.cthetas)
+
+
+        if self.evolution == 'adiabatic':
+            Tint = interp1d(self.TTs, self.RRs)
+            for ii in tqdm(range(self.ncells)):
+                ttobs = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha[ii])
+                Rint = interp1d(ttobs, self.RRs)
+                RRs[ii] = Rint(tt_obs)
+                TTs[ii] = Tint(RRs[ii])
+
+                Gams[ii] = self.GamInt(Robs)
+                Betas[ii] = sqrt(1.-GamObs**(-2.))
+
+            RRl       = RRs*sin(alpha)
+            Bf        = (32.*pi*self.nn*self.epB*cts.mp)**(1./2.) * Gams*cts.cc
+            gamM, nuM = minGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf)
+            gamC, nuC = critGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
+            fMax   = fluxMax(RRs, Gams, self.nn, Bf, self.DD)
+
+            dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
+            afac = self.cellSize/maximum(self.cellSize*ones(num), 2.*pi*(1.-cos(1./Gams)))
+            obsFreqs = freq/dopFacs
+
+            fluxes = (self.DD/RRl)**2. *afac * dopFacs**3. * FluxNuSC_arr(self, nuM, nuC, fMax, obsFreqs)*calpha
+
+        elif self.evolution == 'peer':
+            Tint = interp1d(self.RRs, self.TTs)
+            for ii in tqdm(range(self.ncells)):
+                ttobs = obsTime_offAxis_General(self.RRs, self.TTs, alpha[ii])
+                Rint = interp1d(ttobs, self.RRs)
+                RRs[ii] = Rint(tt_obs)
+                TTs[ii] = Tint(RRs[ii])
+
+                Gams[ii] = self.GamInt(RRs[ii])
+                Betas[ii] = sqrt(1.-Gams[ii]**(-2.))
+
+            RRl        = RRs*sin(alpha)
+            Bf        = Bfield_modified(Gams, Betas, self.nn, self.epB)
+            gamM, nuM = minGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, self.Xp)
+            gamC, nuC = critGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
+            fMax   = fluxMax_modified(RRs, Gams, self.nn, Bf, self.DD, self.PhiP)
+
+            dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
+            obsFreqs = freq/dopFacs
+
+            fluxes = (self.DD/RRl)**2. *self.cellSize * (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fMax, obsFreqs)#*calpha
+
+
+
+        im_xxs = RRl*im_xxs
+        im_yys = RRl*(im_yys + sin(alpha))
 
         return im_xxs, im_yys, fluxes, RRs, Gams, calpha
 
@@ -771,10 +838,73 @@ class jetHeadGauss(jetHeadUD):
             TTs, RRs, Gams, Betas = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
             nuMs, nuCs, fluxes    = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
             im_xxs = sin(self.cthetas)*cos(self.cphis)
-            im_yys = (1.-sin(alpha))*cos(alpha)*sin(self.cthetas)*sin(self.cphis) - (1.-cos(alpha))*sin(alpha)*cos(self.cthetas)
+            im_yys = cos(alpha)*sin(self.cthetas)*sin(self.cphis) - sin(alpha)*cos(self.cthetas)
 
             if self.evolution == 'adiabatic':
-                for ii in tdqm(range(self.ncells)):
+                for ii in tqdm(range(self.ncells)):
+                    Tint = interp1d(self.RRs, self.TTs[:,ii])
+                    ttobs = obsTime_offAxis_UR(self.RRs, self.TTs[:,ii], self.Betas[:,ii], alpha[ii])
+                    Rint = interp1d(ttobs, self.RRs)
+                    RRs[ii] = Rint(tt_obs)
+                    TTs[ii] = Tint(RRs[ii])
+
+                    GamInt   = interp1d(self.RRs, self.Gams[:,ii])
+                    Gams[ii] = GamInt(Robs)
+                    Betas[ii] = sqrt(1.-GamObs**(-2.))
+
+                Bf        = (32.*pi*self.nn*self.epB*cts.mp)**(1./2.) * Gams*cts.cc
+                gamM, nuM = minGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf)
+                gamC, nuC = critGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
+                fluxMax   = fluxMax(RRs, Gams, self.nn, Bf, self.DD)
+
+                dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
+                afac = self.cellSize/maximum(self.cellSize*ones(num), 2.*pi*(1.-cos(1./Gams)))
+                obsFreqs = freq/dopFacs
+
+                fluxes = (self.DD/RRs)**2. * afac * dopFacs**3. * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)*1./calpha
+
+            elif self.evolution == 'peer':
+                for ii in tqdm(range(self.ncells)):
+                    Tint = interp1d(self.RRs, self.TTs[:,ii])
+                    ttobs = obsTime_offAxis_General(self.RRs, self.TTs[:,ii], alpha[ii])
+                    Rint = interp1d(ttobs, self.RRs)
+                    RRs[ii] = Rint(tt_obs)
+                    TTs[ii] = Tint(RRs[ii])
+
+                    GamInt   = interp1d(self.RRs, self.Gams[:,ii])
+                    Gams[ii] = self.GamInt(RRs[ii])
+                    Betas[ii] = sqrt(1.-Gams[ii]**(-2.))
+
+                Bf        = Bfield_modified(Gams, Betas, self.nn, self.epB)
+                gamM, nuM = minGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, self.Xp)
+                gamC, nuC = critGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
+                fluxMax   = fluxMax_modified(RRs, Gams, self.nn, Bf, self.DD, self.PhiP)
+
+                dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
+                obsFreqs = freq/dopFacs
+
+                fluxes = (self.DD/RRs)**2. * self.cellSize * (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)*1./calpha
+
+
+
+            im_xxs = RRs*im_xxs
+            im_yys = RRs*im_yys
+
+            return im_xxs, im_yys, fluxes, RRs, Gams, calpha
+
+        def skymap_2(self, theta_obs, tt_obs, freq, nx, ny, xx0, yy0):
+
+            calpha = self.obsangle(theta_obs)
+            alpha  = arccos(calpha)
+
+            TTs, RRs, Gams, Betas = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
+            nuMs, nuCs, fluxes    = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
+            im_xxs = sin(self.cthetas)*cos(self.cphis)
+            #im_yys = (1.-sin(alpha))*cos(alpha)*sin(self.cthetas)*sin(self.cphis) - (1.-cos(alpha))*sin(alpha)*cos(self.cthetas)
+            im_yys = cos(alpha)*sin(self.cthetas)*sin(self.cphis) - sin(alpha)*cos(self.cthetas)
+
+            if self.evolution == 'adiabatic':
+                for ii in tqdm(range(self.ncells)):
                     Tint = interp1d(self.TTs[:,ii], self.RRs)
                     ttobs = obsTime_offAxis_UR(self.RRs, self.TTs[:,ii], self.Betas[:,ii], alpha[ii])
                     Rint = interp1d(ttobs, self.RRs)
@@ -816,15 +946,14 @@ class jetHeadGauss(jetHeadUD):
                 dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
                 obsFreqs = freq/dopFacs
 
-                fluxes = self.cellSize * (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)#*calpha
+                fluxes = self.cellSize * (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)/calpha
 
 
 
             im_xxs = RRs*im_xxs
-            im_yys = RRs*im_yys
+            im_yys = RRs*(im_yys + sin(alpha))
 
             return im_xxs, im_yys, fluxes, RRs, Gams, calpha
-
 
 
             """
