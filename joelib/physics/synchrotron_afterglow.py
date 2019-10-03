@@ -26,6 +26,7 @@ def charFreq(gamE, Gam, Bf):
 
     #BB = (32.*pi*cts.mp*jet.epB*jet.nn)**(1./2.)*jet.Gam*cts.cc
     return Gam*gamE**2.*cts.qe*Bf/(2.*pi*cts.me*cts.cc)
+    #return gamE**2.*cts.qe*Bf/(2.*pi*cts.me*cts.cc)
 
 
 ############################################## Sari, Piran & Narayan (1998) formulae ########################
@@ -48,6 +49,8 @@ def critGam(Gam, epE, epB, nn, pp, Bfield, tt): #, TT, Gam, Bf):
     GamCrit =  3.*cts.me/(16.*epB*cts.sigT*cts.mp*cts.cc*Gam**3.*tt*nn)
     nuCrit   = charFreq(GamCrit, Gam, Bfield)
 
+
+
     return GamCrit, nuCrit
 
 
@@ -62,7 +65,7 @@ def fluxMax(RR, Gam, nn, Bfield, DD):
     #                    )**(1./2.)*jet.Gam0**2./(9.*cts.qe*jet.DD**2.)
     #fmax[fil2]  = jet.nn**(3./2.)*jet.Rd**3. * cts.sigT * cts.cc**3. *cts.me* (32.*pi*cts.mp*jet.epB
                             #)**(1./2.)*jet.Gam0**2./(9.*cts.qe*jet.DD**2.)
-    fmax  = nn*RR**3. * cts.sigT * cts.cc**2. *cts.me* Bfield* Gam/(9.*cts.qe*DD**2.)
+    fmax  = nn*RR**3. * cts.sigT * cts.cc**2. *cts.me* Bfield* Gam/(9.*4.*pi*cts.qe*DD**2.)
 
     return fmax
 
@@ -102,7 +105,9 @@ def critGam_modified(Gam, epE, epB, nn, pp, Bfield, tt):
 
 def fluxMax_modified(RR, Gam, nn, Bfield, DD, PhiP):
 
+    #fmax = sqrt(3)*nn*RR**3.*cts.qe**3.*Bfield/(3.*cts.me*cts.cc**2.*4.*pi*DD**2.) *PhiP #
     fmax = sqrt(3)*nn*RR**3.*cts.qe**3.*Bfield/(3.*cts.me*cts.cc**2.*4.*pi*DD**2.) *PhiP #
+
 
     return fmax
 
@@ -306,7 +311,7 @@ def obsTime_onAxis_integrated(RRs, Gams, Betas):
 def obsTime_offAxis_General(RR, TT, theta):
 
     return TT + RR/cts.cc * (1.-cos(theta))
-
+    #return TT - RR/cts.cc * cos(theta)
 
 
 def normT(gamma, beta):
@@ -353,6 +358,7 @@ def evolve_relad(jet):
     Rsd   = Gam**(2./3.) *jet.Rd / GamSD       # Radius at Lorentz factor=1.005 -> after this point use Sedov-Taylor scaling
     Rl    = jet.Rd * Gam**(2./3.)
     RRs   = logspace(log10(jet.Rd/100.), log10(Rl)+1.5, jet.steps+1) #10
+    #MMs = 1./3. * RRs**3. * jet.nn * cts.mp * jet.angExt
     MMs   = 4./3. *pi*cts.mp*jet.nn*RRs**3.
 
     Gams  = zeros(len(RRs))
@@ -460,6 +466,8 @@ class adiabatic_afterglow:
     def __onAxisdecTime(self):
         # Deceleration time for an on-axis observer
         self.onaxisTd = self.Rd/(2.*self.Gam0**2 * cts.cc)
+        #self.onaxisTd = (3.*self.EE/(256*pi*self.nn*self.Gam0**8. *cts.mp*cts.cc**5 ))**(1./3)
+
 
 #    def __obsTime_onAxis(self):
 #        self.TTs = self.obsTime_onAxis()
