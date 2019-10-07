@@ -500,8 +500,8 @@ class jetHeadGauss(jetHeadUD):
                 #GamEv[0] = Gams[0,self.layer==ii+1][0]
                 MM0 = self.cell_EEs[self.layer==ii+1][0]/(self.cell_Gam0s[self.layer==ii+1][0]*cts.cc**2.)
                 self.cell_Gam0s[self.layer==ii+1][0]
-                Gams = zeros(len(RRs))
-
+                #Gams = zeros(len(RRs))
+                GamEv = zeros([len(RRs)])
                 GamEv[0] = self.cell_Gam0s[self.layer==ii+1][0]
                 # Calculate dynamical evolution of the layer
 
@@ -510,14 +510,16 @@ class jetHeadGauss(jetHeadUD):
 
 
                 # Share the values with the rest of the cells of the layer
-                for jj in range(self.cellsInLayer(ii)):
-                    if ii==0:
-                        Gams = copy(GamEv)
-                    else:
-                        Gams = column_stack((Gams, GamEv))
+                if ii==0:
+                    Gams = array([GamEv,]).T
+                else:
+                    GamEv = array([GamEv]*self.cellsInLayer(ii)).T
+                    #Gams = column_stack((Gams, GamEv))
+                    Gams = concatenate([Gams, GamEv], axis=1)
 
             Betas = sqrt(1.-1./Gams**2.)
             #Betas[-1] = 0.0
+            print shape(Gams)
 
             return RRs, Gams, Betas
 
@@ -572,14 +574,18 @@ class jetHeadGauss(jetHeadUD):
                             TTs = column_stack((TTs, layerTime))
 
             elif self.evolution == "peer":
-                for layer in range(self.nlayers):
+                for layer in tqdm(range(self.nlayers)):
                     if layer==0:
                         TTs = obsTime_onAxis_integrated(self.RRs, self.Gams[:, layer], self.Betas[:, layer])
+                        TTs = array([TTs,]).T
                     else:
                         layerTime = obsTime_onAxis_integrated(self.RRs, self.Gams[:, self.layer==layer+1][:,0],
                                                                                 self.Betas[:, self.layer==layer+1][:,0])
-                        for cell in range(self.cellsInLayer(layer)):
-                            TTs = column_stack((TTs, layerTime))
+                        #TTs = column_stack((TTs, layerTime))
+
+                        layerTime = array([layerTime]*self.cellsInLayer(layer)).T
+                        TTs = concatenate([TTs, layerTime], axis=1)
+
 
 
             return TTs
