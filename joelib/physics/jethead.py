@@ -45,10 +45,10 @@ class jetHeadUD(adiabatic_afterglow):
 
         for ii in range(self.nlayers):                             # Loop over layers and populate the arrays
             num = self.cellsInLayer(ii)
-            self.layer   = append(self.layer,ones(num+1)*(ii+1))            # Layer on which the phi edges are
             self.phis    = append(self.phis, arange(0,num+1)*2.*pi/num)     # Phi value of the edges
-            self.cthetas = append(self.cthetas,ones(num)*0.5*(self.thetas[ii]+self.thetas[ii+1]))   # Central theta values
-            self.cphis   = append(self.cphis,(arange(0,num)+0.5)*2.*pi/num )    # Central phi values
+            self.layer   = append(self.layer,ones(num)*(ii+1))            # Layer on which the cells are
+            self.cthetas = append(self.cthetas,ones(num)*0.5*(self.thetas[ii]+self.thetas[ii+1]))   # Central theta values of the cells
+            self.cphis   = append(self.cphis,(arange(0,num)+0.5)*2.*pi/num )    # Central phi values of the cells
 
             #num = int(round(self.cellsInLayer(ii)/2))
             #self.layer   = append(self.layer,ones(num+1)*(ii+1))            # Layer on which the phi edges are
@@ -369,72 +369,6 @@ class jetHeadUD(adiabatic_afterglow):
         im_yys = RRs*im_yys
 
         return im_xxs, im_yys, fluxes, RRs, Gams, calpha, TTs
-    """
-    def skymap_2(self, theta_obs, tt_obs, freq, nx, ny, xx0, yy0):
-
-        calpha = self.obsangle(theta_obs)
-        alpha  = arccos(calpha)
-
-        TTs, RRs, Gams, Betas = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
-        nuMs, nuCs, fluxes    = zeros(self.ncells), zeros(self.ncells), zeros(self.ncells)
-        im_xxs = sin(self.cthetas)*cos(self.cphis)
-        im_yys = cos(alpha)*sin(self.cthetas)*sin(self.cphis) - sin(alpha)*cos(self.cthetas)
-
-
-        if self.evolution == 'adiabatic':
-            Tint = interp1d(self.TTs, self.RRs)
-            for ii in tqdm(range(self.ncells)):
-                ttobs = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha[ii])
-                Rint = interp1d(ttobs, self.RRs)
-                RRs[ii] = Rint(tt_obs)
-                TTs[ii] = Tint(RRs[ii])
-
-                Gams[ii] = self.GamInt(Robs)
-                Betas[ii] = sqrt(1.-GamObs**(-2.))
-
-            RRl       = RRs*sin(alpha)
-            Bf        = (32.*pi*self.nn*self.epB*cts.mp)**(1./2.) * Gams*cts.cc
-            gamM, nuM = minGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf)
-            gamC, nuC = critGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
-            fMax   = fluxMax(RRs, Gams, self.nn, Bf, self.DD)
-
-            dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
-            afac = self.cellSize/maximum(self.cellSize*ones(num), 2.*pi*(1.-cos(1./Gams)))
-            obsFreqs = freq/dopFacs
-
-            fluxes = (self.DD/RRl)**2. *afac * dopFacs**3. * FluxNuSC_arr(self, nuM, nuC, fMax, obsFreqs)*calpha
-
-        elif self.evolution == 'peer':
-            Tint = interp1d(self.RRs, self.TTs)
-            for ii in tqdm(range(self.ncells)):
-                ttobs = obsTime_offAxis_General(self.RRs, self.TTs, alpha[ii])
-                Rint = interp1d(ttobs, self.RRs)
-                RRs[ii] = Rint(tt_obs)
-                TTs[ii] = Tint(RRs[ii])
-
-                Gams[ii] = self.GamInt(RRs[ii])
-                Betas[ii] = sqrt(1.-Gams[ii]**(-2.))
-
-            RRl        = RRs*sin(alpha)
-            Bf        = Bfield_modified(Gams, Betas, self.nn, self.epB)
-            gamM, nuM = minGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, self.Xp)
-            gamC, nuC = critGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
-            fMax   = fluxMax_modified(RRs, Gams, self.nn, Bf, self.DD, self.PhiP)
-
-            dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
-            obsFreqs = freq/dopFacs
-
-            fluxes = (self.DD/RRl)**2. *self.cellSize * (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fMax, obsFreqs)#*calpha
-
-
-
-        im_xxs = RRl*im_xxs
-        im_yys = RRl*(im_yys + sin(alpha))
-
-        return im_xxs, im_yys, fluxes, RRs, Gams, calpha
-    """
-
-    #def skymap_3(self, theta_obs, tt_obs, freq, nx, ny, xx0, xxf, yy0, yyf)
 
 
 
@@ -554,15 +488,33 @@ class jetHeadGauss(jetHeadUD):
             RRs   = logspace(log10(self.Rd/100.), log10(Rl)+3., self.steps+1) #10
             #MMs    = 4.*pi * cts.mp*self.nn*RRs**3./3.#4./3. *pi*cts.mp*self.nn*RRs**3.
             MMs = 4./3. * pi*RRs**3. * self.nn * cts.mp
-            Gams  = zeros([len(RRs), self.ncells])
-            Gams[0,:] = self.cell_Gam0s
+            #Gams[0,:] = self.cell_Gam0s
+
+            #print("Calculating Gamma as a function of R for each cell")
+            print("Calculating dynamical evolution for each layer")
+            #for ii in tqdm(range(1,len(self.Betas))):
+            #    Gams[ii,:] = rk4(dgdm_struc, self, log10(MMs[ii-1]), Gams[ii-1,:], (log10(MMs[ii])-log10(MMs[ii-1])))
+
+            for ii in tqdm(range(self.nlayers)):
+                # Set up initial conditions for the layer
+                #GamEv[0] = Gams[0,self.layer==ii+1][0]
+                MM0 = self.cell_EEs[self.layer==ii+1][0]/(self.cell_Gam0s[self.layer==ii+1][0]*cts.cc**2.)
+                self.cell_Gam0s[self.layer==ii+1][0]
+                Gams = zeros(len(RRs))
+
+                GamEv[0] = self.cell_Gam0s[self.layer==ii+1][0]
+                # Calculate dynamical evolution of the layer
+
+                for jj in range(1, len(GamEv)):
+                    GamEv[jj] = rk4(dgdm_mod, MM0, log10(MMs[jj-1]), GamEv[jj-1], (log10(MMs[jj])-log10(MMs[jj-1])))
 
 
-
-            print("Calculating Gamma as a function of R for each cell")
-            for ii in tqdm(range(1,len(self.Betas))):
-                Gams[ii,:] = rk4(dgdm_struc, self, log10(MMs[ii-1]), Gams[ii-1,:], (log10(MMs[ii])-log10(MMs[ii-1])))
-
+                # Share the values with the rest of the cells of the layer
+                for jj in range(self.cellsInLayer(ii)):
+                    if ii==0:
+                        Gams = copy(GamEv)
+                    else:
+                        Gams = column_stack((Gams, GamEv))
 
             Betas = sqrt(1.-1./Gams**2.)
             #Betas[-1] = 0.0
@@ -607,31 +559,28 @@ class jetHeadGauss(jetHeadUD):
             """
 
 
-            TTs = zeros([len(self.RRs), self.ncells])
-            #TTs[0,:] = self.RRs[0]/(cts.cc*self.Gams[0,:]**2.*self.Betas[0,:]*(1.+self.Betas[0,:]))
-
-            """
-            integrand = 1./(cts.cc*self.Gams**2.*self.Betas*(1.+self.Betas))
-
-            print("Calculating on-axis observerd time for each cell")
-            for ii in tqdm(range(1,len(self.Betas))):
-                for cell in range(self.ncells):
-                    TTs[ii,cell] = trapz(integrand[0:ii+1,cell], self.RRs[0:ii+1]) + TTs[0,cell]
-            """
-
             print("Calculating on-axis observerd time for each cell")
             #for ii in tqdm(range(1,len(self.Betas))):
             if self.evolution == "adiabatic":
-                for cell in range(self.ncells):
-                        #TTs[:,cell] =  self.RRs[:, cell]/(self.Betas[:,cell]*cts.cc) * (1.-self.Betas[:,cell]) #trapz(integrand[0:ii+1,cell], self.RRs[0:ii+1]) + TTs[0,cell]
-                    TTs[:, cell] = obsTime_onAxis_adiabatic(self.RRs[:, cell], self.Betas[:,cell])
+                for layer in range(self.nlayers):
+                    if layer==0:
+                        TTs = obsTime_onAxis_adiabatic(self.RRs, self.Gams[:, layer], self.Betas[:, layer])
+                    else:
+                        layerTime = obsTime_onAxis_adiabatic(self.RRs, self.Gams[:, self.layer==layer+1][:,0],
+                                                                        self.Betas[:, self.layer==layer+1][:,0])
+                        for cell in range(self.cellsInLayer(layer)):
+                            TTs = column_stack((TTs, layerTime))
+
             elif self.evolution == "peer":
-                #integrand = 1./(cts.cc*self.Gams**2.*self.Betas*(1.+self.Betas))
-                #for ii in tqdm(range(1,len(self.Betas))):
-                #    for cell in range(self.ncells):
-                #        TTs[ii,cell] = trapz(integrand[0:ii+1,cell], self.RRs[0:ii+1]) + TTs[0,cell]
-                for cell in tqdm(range(self.ncells)):
-                    TTs[:, cell] = obsTime_onAxis_integrated(self.RRs, self.Gams[:, cell], self.Betas[:,cell])
+                for layer in range(self.nlayers):
+                    if layer==0:
+                        TTs = obsTime_onAxis_integrated(self.RRs, self.Gams[:, layer], self.Betas[:, layer])
+                    else:
+                        layerTime = obsTime_onAxis_integrated(self.RRs, self.Gams[:, self.layer==layer+1][:,0],
+                                                                                self.Betas[:, self.layer==layer+1][:,0])
+                        for cell in range(self.cellsInLayer(layer)):
+                            TTs = column_stack((TTs, layerTime))
+
 
             return TTs
 

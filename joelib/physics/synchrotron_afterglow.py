@@ -346,6 +346,19 @@ def dgdm_struc(jet, gams, mms):
 
     return numerator/denominator
 
+def dgdm_mod(MM0, gam, mm):
+    beta = sqrt(1-1./gam**2.)
+    TTs =   normT(gam, beta)
+    ada =  adabatic_index(TTs)
+    #numerator = -4.*pi*jet.nn*cts.mp*rr**2. * ( ada*(gam**2.-1)-(ada-1)*gam*beta**2  )
+    #denominator = jet.EE/(jet.Gam0*cts.cc**2.) + 4./3.*pi*jet.nn*cts.mp*rr**3.*(2.*ada*gam-(ada-1)*(1.+gam**(-2)))
+    numerator = -10**mm*log(10)*( ada*(gam**2.-1)-(ada-1)*gam*beta**2  )
+    denominator = MM0 + 10**mm*(2.*ada*gam-(ada-1)*(1.+gam**(-2)))
+
+    return numerator/denominator
+
+
+
 
 def evolve_relad(jet):
     """
