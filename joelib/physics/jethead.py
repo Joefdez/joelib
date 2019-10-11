@@ -130,16 +130,22 @@ class jetHeadUD(adiabatic_afterglow):
         calpha = self.obsangle(theta_obs)
         alpha  = arccos(calpha)
 
+        calpha_cj = self.obsangle_cj(theta_obs)
+        alpha_cj  = arccos(calpha_cj)
+
         if self.evolution == 'adiabatic':
             max_Tobs = max(obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, max(alpha)))/cts.sTd
+            max_Tobs_cj = max(obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, max(alpha_cj)))/cts.sTd
+
         elif self.evolution == 'peer':
             max_Tobs = max(obsTime_offAxis_General(self.RRs, self.TTs, max(alpha)))/cts.sTd
-            #max_Tobs = max(obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, max(alpha)))/cts.sTd
+            max_Tobs_cj = max(obsTime_offAxis_General(self.RRs, self.TTs, max(alpha_cj)))/cts.sTd
 
 
-        if ttf>max_Tobs:
+        if (ttf>max_Tobs or ttf>max_Tobs_cj):
             print "ttf larger than maximum observable time. Adjusting value. "
-            ttf = max_Tobs
+            ttf = min(max_Tobs, max_Tobs_cj)
+
 
         lt0 = log10(tt0*cts.sTd) # Convert to seconds and then logspace
         ltf = log10(ttf*cts.sTd) # Convert to seconds and then logspace
@@ -149,22 +155,29 @@ class jetHeadUD(adiabatic_afterglow):
 
         light_curve      = zeros([len(obsFreqs), num])
         light_curve_RS   = zeros([len(obsFreqs), num])
+        light_curve_CJ   = zeros([len(obsFreqs), num])
 
 
         for ii in tqdm(range(self.ncells)):
         #for ii in range(self.ncells):
-            ttobs = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha[ii])
+
+            onAxisTint = interp1d(self.RRs, self.TTs)
+
+            ttobs    = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha[ii])
+            ttobs_cj = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha_cj[ii])
 
 
             filTM  = where(tts<=max(ttobs))[0]
             filTm  = where(tts[filTM]>=min(ttobs))[0]
-            #print(len(tts[filT]))
+
+            filTM_cj  = where(tts<=max(ttobs_cj))[0]
+            filTm_cj  = where(tts[filTM_cj]>=min(ttobs_cj))[0]
+
 
             Rint = interp1d(ttobs, self.RRs)
             Robs = Rint(tts[filTM][filTm])
             GamObs = self.GamInt(Robs)
             BetaObs = sqrt(1.-GamObs**(-2.))
-            onAxisTint = interp1d(self.RRs, self.TTs)
             #if self.evolution == 'adiabatic':
             #    onAxisTobs = obsTime_onAxis_adiabatic(Robs, BetaObs)
             #elif self.evolution == 'peer':
@@ -172,32 +185,48 @@ class jetHeadUD(adiabatic_afterglow):
             onAxisTobs = onAxisTint(Robs)
 
             # Forward shock stuff
-            #gamMobs, gamCobs = self.gamMI(Robs), self.gamCI(Robs)
-            #nuMobs, nuCobs   = self.nuMI(Robs), self.nuCI(Robs)
-            #Fnuobs = self.FnuMI(Robs)
+
             Bfield = sqrt(32.*pi*self.nn*self.epB*cts.mp)*cts.cc*GamObs
             gamMobs, nuMobs = minGam(GamObs, self.epE, self.epB, self.nn, self.pp, Bfield)
             gamCobs, nuCobs = critGam(GamObs, self.epE, self.epB, self.nn, self.pp, Bfield, onAxisTobs)
             Fnuobs = fluxMax(Robs, GamObs, self.nn, Bfield, self.DD)
 
-
-
-
             # Reverse shock stuff
             nuM_RS, nuC_RS, Fnu_RS = params_tt_RS(self, onAxisTobs, Rb)
 
+            # Counter-jet stuff
 
-            dopFacs =  self.dopplerFactor(calpha[ii], sqrt(1.-GamObs**(-2)))
+            Rint_cj = interp1d(ttobs_cj, self.RRs)
+            Robs_cj = Rint_cj(tts[filTM_cj][filTm_cj])
+            GamObs_cj = self.GamInt(Robs_cj)
+            BetaObs_cj = sqrt(1.-GamObs_cj**(-2.))
+            #onAxisTint = interp1d(self.RRs, self.TTs)
+            #if self.evolution == 'adiabatic':
+            #    onAxisTobs = obsTime_onAxis_adiabatic(Robs, BetaObs)
+            #elif self.evolution == 'peer':
+            #    onAxisTobs = obsTime_onAxis_integrated(Robs, GamObs, BetaObs)
+            onAxisTobs_cj = onAxisTint(Robs_cj)
+
+            Bfield_cj = sqrt(32.*pi*self.nn*self.epB*cts.mp)*cts.cc*GamObs_cj
+            gamMobs_cj, nuMobs_cj = minGam(GamObs_cj, self.epE, self.epB, self.nn, self.pp, Bfield_cj)
+            gamCobs_cj, nuCobs_cj = critGam(GamObs_cj, self.epE, self.epB, self.nn, self.pp, Bfield_cj, onAxisTobs_cj)
+            Fnuobs_cj = fluxMax(Robs_cj, GamObs_cj, self.nn, Bfield_cj, self.DD)
+
+
+            dopFacs =  self.dopplerFactor(calpha[ii], BetaObs)
             afac = self.cellSize/maximum(self.cellSize*ones(num)[filTM][filTm], 2.*pi*(1.-cos(1./GamObs)))
+
+            dopFacs_cj =  self.dopplerFactor(calpha_cj[ii], BetaObs_cj)
+            afac_cj = self.cellSize/maximum(self.cellSize*ones(num)[filTM_cj][filTm_cj], 2.*pi*(1.-cos(1./GamObs_cj)))
 
 
             for freq in obsFreqs:
                 fil1, fil2 = where(gamMobs<=gamCobs)[0], where(gamMobs>gamCobs)[0]
                 fil3, fil4 = where(nuM_RS<=nuC_RS)[0], where(nuM_RS>nuC_RS)[0]
-                freqs = freq/dopFacs              # Calculate the rest-frame frequencies correspondng to the observed frequency
-                #print shape(freqs), shape(freqs[fil1]), shape(nuMobs[fil1]), shape(nuCobs[fil1]), shape(Fnuobs[fil1]), shape(afac[fil1]), shape(calpha)
-                #print shape(light_curve[obsFreqs==freq, filT]), shape([fil1])
-                #print fil1
+                fil5, fil6 = where(nuMobs_cj<=nuCobs_cj)[0], where(nuMobs_cj>nuCobs_cj)[0]
+                freqs    = freq/dopFacs              # Calculate the rest-frame frequencies correspondng to the observed frequency
+                freqs_cj = freq/dopFacs_cj
+
                 light_curve[obsFreqs==freq, filTM[filTm][fil1]] = light_curve[obsFreqs==freq, filTM[filTm][fil1]] + (
                                                     afac[fil1] * dopFacs[fil1]**3. * FluxNuSC_arr(self, nuMobs[fil1], nuCobs[fil1], Fnuobs[fil1], freqs[fil1]))*calpha[ii]
                 #light_curve[obsFreqs==freq, filTM[filTm][fil2]] = light_curve[obsFreqs==freq, filTM[filTm][fil2]] + (
@@ -207,15 +236,12 @@ class jetHeadUD(adiabatic_afterglow):
                                                     afac[fil3] * dopFacs[fil3]**3. * FluxNuSC_arr(self, nuM_RS[fil3], nuC_RS[fil3], Fnu_RS[fil3], freqs[fil3]))*calpha[ii]
                 #light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] + (
                 #                                    afac[fil4] * dopFacs[fil4]**3. * FluxNuFC_arr(self, nuM_RS[fil4], nuC_RS[fil4], Fnu_RS[fil4], freqs[fil4]))*calpha[ii]
-                #cont1 = afac[fil1] * dopFacs[fil1]**3. * self.FluxNuSC_arr(nuMobs[fil1], nuCobs[fil1], Fnuobs[fil1], freqs[fil1])*calpha[ii]
-                #cont2 = afac[fil2] * dopFacs[fil2]**3. * self.FluxNuFC_arr(nuMobs[fil2], nuCobs[fil2], Fnuobs[fil2], freqs[fil2])*calpha[ii]
-
-                #light_curve[obsFreqs==freq, filT][fil1] += cont1
-                #light_curve[obsFreqs==freq, filT][fil2] += cont2
+                light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] = light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] + (
+                                                    afac_cj[fil5] * dopFacs_cj[fil5]**3. * FluxNuSC_arr(self, nuMobs_cj[fil5], nuCobs_cj[fil5], Fnuobs_cj[fil5], freqs_cj[fil5]))*calpha_cj[ii]
 
 
         #return tts, 2.*light_curve, 2.*light_curve_RS
-        return tts, light_curve, light_curve_RS
+        return tts, light_curve, light_curve_CJ, light_curve_RS
 
     def light_curve_peer(self, theta_obs, obsFreqs, tt0, ttf, num, Rb):
 
@@ -226,14 +252,22 @@ class jetHeadUD(adiabatic_afterglow):
         calpha = self.obsangle(theta_obs)
         alpha  = arccos(calpha)
 
+        calpha_cj = self.obsangle_cj(theta_obs)
+        alpha_cj  = arccos(calpha_cj)
 
-        max_Tobs = max(obsTime_offAxis_General(self.RRs, self.TTs, max(alpha)))/cts.sTd
-        #max_Tobs = max(obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, max(alpha)))/cts.sTd
+
+        if self.evolution == 'adiabatic':
+            max_Tobs = max(obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, max(alpha)))/cts.sTd
+            max_Tobs_cj = max(obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, max(alpha_cj)))/cts.sTd
+
+        elif self.evolution == 'peer':
+            max_Tobs = max(obsTime_offAxis_General(self.RRs, self.TTs, max(alpha)))/cts.sTd
+            max_Tobs_cj = max(obsTime_offAxis_General(self.RRs, self.TTs, max(alpha_cj)))/cts.sTd
 
 
-        if ttf>max_Tobs:
+        if (ttf>max_Tobs or ttf>max_Tobs_cj):
             print "ttf larger than maximum observable time. Adjusting value. "
-            ttf = max_Tobs
+            ttf = min(max_Tobs, max_Tobs_cj)
 
         lt0 = log10(tt0*cts.sTd) # Convert to seconds and then logspace
         ltf = log10(ttf*cts.sTd) # Convert to seconds and then logspace
@@ -243,28 +277,39 @@ class jetHeadUD(adiabatic_afterglow):
 
         light_curve      = zeros([len(obsFreqs), num])
         light_curve_RS   = zeros([len(obsFreqs), num])
+        light_curve_CJ   = zeros([len(obsFreqs), num])
 
 
         for ii in tqdm(range(self.ncells)):
         #for ii in range(self.ncells):
+            onAxisTint = interp1d(self.RRs, self.TTs)
 
             ttobs = obsTime_offAxis_General(self.RRs, self.TTs, alpha[ii])
+            ttobs_cj = obsTime_offAxis_General(self.RRs, self.TTs, alpha_cj[ii])
+
             #ttobs = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha[ii])
 
             filTM  = where(tts<=max(ttobs))[0]
             filTm  = where(tts[filTM]>=min(ttobs))[0]
+            filTM_cj  = where(tts<=max(ttobs))[0]
+            filTm_cj  = where(tts[filTM_cj]>=min(ttobs))[0]
             #print(len(tts[filT]))
 
             Rint = interp1d(ttobs, self.RRs)
             Robs = Rint(tts[filTM][filTm])
             GamObs = self.GamInt(Robs)
             BetaObs = sqrt(1.-GamObs**(-2.))
-            onAxisTint = interp1d(self.RRs, self.TTs)
             #if self.evolution == 'adiabatic':
             #    onAxisTobs = obsTime_onAxis_adiabatic(Robs, BetaObs)
             #elif self.evolution == 'peer':
             #    onAxisTobs = obsTime_onAxis_integrated(Robs, GamObs, BetaObs)
             onAxisTobs = onAxisTint(Robs)
+
+            Rint_cj = interp1d(ttobs_cj, self.RRs)
+            Robs_cj= Rint(tts[filTM_cj][filTm_cj])
+            GamObs_cj = self.GamInt(Robs_cj)
+            BetaObs_cj = sqrt(1.-GamObs_cj**(-2.))
+            onAxisTobs_cj = onAxisTint(Robs_cj)
 
             # Forward shock stuff
             #gamMobs, gamCobs = self.gamMI(Robs), self.gamCI(Robs)
@@ -277,21 +322,33 @@ class jetHeadUD(adiabatic_afterglow):
             Fnuobs = fluxMax_modified(Robs, GamObs, self.nn, Bfield, self.DD, self.PhiP)
 
 
+
+            Bfield_cj = Bfield_modified(GamObs_cj, BetaObs_cj, self.nn, self.epB)
+            gamMobs_cj, nuMobs_cj = minGam_modified(GamObs_cj, self.epE, self.epB, self.nn, self.pp, Bfield_cj, self.Xp)
+            gamCobs_cj, nuCobs_cj = critGam_modified(GamObs_cj, self.epE, self.epB, self.nn, self.pp, Bfield_cj, onAxisTobs_cj)
+            Fnuobs_cj = fluxMax_modified(Robs_cj, GamObs_cj, self.nn, Bfield_cj, self.DD, self.PhiP)
+
+
             # Reverse shock stuff
             nuM_RS, nuC_RS, Fnu_RS = params_tt_RS(self, onAxisTobs, Rb)
 
 
-            dopFacs =  self.dopplerFactor(calpha[ii], sqrt(1.-GamObs**(-2)))
+            dopFacs =  self.dopplerFactor(calpha[ii], BetaObs)
             afac = self.cellSize/maximum(self.cellSize*ones(num)[filTM][filTm], 2.*pi*(1.-cos(1./GamObs)))
+
+            dopFacs_cj =  self.dopplerFactor(calpha_cj[ii], BetaObs_cj)
+            afac = self.cellSize/maximum(self.cellSize*ones(num)[filTM_cj][filTm_cj], 2.*pi*(1.-cos(1./GamObs_cj)))
 
 
             for freq in obsFreqs:
                 fil1, fil2 = where(gamMobs<=gamCobs)[0], where(gamMobs>gamCobs)[0]
                 fil3, fil4 = where(nuM_RS<=nuC_RS)[0], where(nuM_RS>nuC_RS)[0]
+                fil5, fil6 = where(nuMobs_cj<=nuCobs_cj)[0], where(nuMobs_cj>nuCobs_cj)[0]
+
+
                 freqs = freq/dopFacs              # Calculate the rest-frame frequencies correspondng to the observed frequency
-                #print shape(freqs), shape(freqs[fil1]), shape(nuMobs[fil1]), shape(nuCobs[fil1]), shape(Fnuobs[fil1]), shape(afac[fil1]), shape(calpha)
-                #print shape(light_curve[obsFreqs==freq, filT]), shape([fil1])
-                #print fil1
+                freqs_cj = freq/dopFacs_cj
+
                 light_curve[obsFreqs==freq, filTM[filTm][fil1]] = light_curve[obsFreqs==freq, filTM[filTm][fil1]] + (
                                         self.cellSize * (GamObs[fil1]*(1.-BetaObs[fil1]*calpha[ii]))**(-3.)  * FluxNuSC_arr(self, nuMobs[fil1], nuCobs[fil1], Fnuobs[fil1], freqs[fil1]))#*calpha[ii]
                 #light_curve[obsFreqs==freq, filTM[filTm][fil2]] = light_curve[obsFreqs==freq, filTM[filTm][fil2]] + (
@@ -301,25 +358,22 @@ class jetHeadUD(adiabatic_afterglow):
                                         self.cellSize * (GamObs[fil3]*(1.-BetaObs[fil3]*calpha[ii]))**(-3.) * FluxNuSC_arr(self, nuM_RS[fil3], nuC_RS[fil3], Fnu_RS[fil3], freqs[fil3]))#*calpha[ii]
                 #light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] + (
                 #                                    afac[fil4] * dopFacs[fil4]**3. * FluxNuFC_arr(self, nuM_RS[fil4], nuC_RS[fil4], Fnu_RS[fil4], freqs[fil4]))*calpha[ii]
-                #cont1 = afac[fil1] * dopFacs[fil1]**3. * self.FluxNuSC_arr(nuMobs[fil1], nuCobs[fil1], Fnuobs[fil1], freqs[fil1])*calpha[ii]
-                #cont2 = afac[fil2] * dopFacs[fil2]**3. * self.FluxNuFC_arr(nuMobs[fil2], nuCobs[fil2], Fnuobs[fil2], freqs[fil2])*calpha[ii]
-
-                #light_curve[obsFreqs==freq, filT][fil1] += cont1
-                #light_curve[obsFreqs==freq, filT][fil2] += cont2
+                light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] = light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] + (
+                                        self.cellSize * (GamObs_cj[fil5]*(1.-BetaObs_cj[fil5]*calpha_cj[ii]))**(-3.) * FluxNuSC_arr(self, nuMobs_cj[fil5], nuCobs_cj[fil5], Fnuobs_cj[fil5], freqs_cj[fil3]))#*calpha[ii]
 
 
 
         #return tts, 2.*light_curve, 2.*light_curve_RS
-        return tts, light_curve, light_curve_RS
+        return tts, light_curve, light_curve_CJ, light_curve_RS
 
 
     def lightCurve_interp(self, theta_obs, obsFreqs, tt0, ttf, num, Rb):
         if self.evolution == "adiabatic":
-                tts, light_curve, light_curve_RS = self.light_curve_adiabatic(theta_obs, obsFreqs, tt0, ttf, num, Rb)
+                tts, light_curve, light_curve_CJ, light_curve_RS = self.light_curve_adiabatic(theta_obs, obsFreqs, tt0, ttf, num, Rb)
         elif self.evolution == "peer":
-                tts, light_curve, light_curve_RS = self.light_curve_peer(theta_obs, obsFreqs, tt0, ttf, num, Rb)
+                tts, light_curve, light_curve_CJ,light_curve_RS = self.light_curve_peer(theta_obs, obsFreqs, tt0, ttf, num, Rb)
 
-        return tts, light_curve, light_curve_RS
+        return tts, light_curve, light_curve_CJ, light_curve_RS
 
 
     def skymap(self, theta_obs, tt_obs, freq, nx, ny, xx0, yy0):
@@ -583,10 +637,9 @@ class jetHeadGauss(jetHeadUD):
             if self.evolution == "adiabatic":
                 for layer in range(self.nlayers):
                     if layer==0:
-                        TTs = obsTime_onAxis_adiabatic(self.RRs, self.Gams[:, layer], self.Betas[:, layer])
+                        TTs = obsTime_onAxis_adiabatic(self.RRs[:, layer],self.Betas[:, layer])
                     else:
-                        layerTime = obsTime_onAxis_adiabatic(self.RRs, self.Gams[:, self.layer==layer+1][:,0],
-                                                                        self.Betas[:, self.layer==layer+1][:,0])
+                        layerTime = obsTime_onAxis_adiabatic(self.RRs[:, self.layer==layer+1][:,0], self.Betas[:, self.layer==layer+1][:,0])
                         for cell in range(self.cellsInLayer(layer)):
                             TTs = column_stack((TTs, layerTime))
 
@@ -657,7 +710,7 @@ class jetHeadGauss(jetHeadUD):
 
             light_curve    = zeros([len(obsFreqs), num])
             light_curve_RS = zeros([len(obsFreqs), num])
-            light_curve_cj = zeros([len(obsFreqs), num])
+            light_curve_CJ = zeros([len(obsFreqs), num])
 
 
             for ii in tqdm(range(self.ncells)):
@@ -669,6 +722,9 @@ class jetHeadGauss(jetHeadUD):
 
                 filTM  = where(tts<=max(ttobs))[0]
                 filTm  = where(tts[filTM]>=min(ttobs))[0]
+
+                filTM_cj  = where(tts<=max(ttobs))[0]
+                filTm_cj  = where(tts[filTM_cj]>=min(ttobs))[0]
 
                 Rint = interp1d(ttobs, RRs)
                 Gamint = interp1d(RRs, self.Gams[:,ii])
@@ -691,13 +747,16 @@ class jetHeadGauss(jetHeadUD):
                 nuM_RS, nuC_RS, Fnu_RS = self.params_tt_RS(onAxisTobs, ii, Rb)
 
                 # Counter jet stuff
-                ttobs_cj = obsTime_offAxis_UR(self.RRs, self.TTs[:,ii], alpha_cj[ii])
+
+
+
+                ttobs_cj = obsTime_offAxis_UR(self.RRs[:,ii], self.TTs[:,ii], self.Betas[:,ii], alpha_cj[ii])
                 filTM_cj  = where(tts<=max(ttobs_cj))[0]
                 filTm_cj  = where(tts[filTM]>=min(ttobs_cj))[0]
 
                 Rint_cj = interp1d(ttobs_cj, RRs)
                 #Gamint = interp1d(RRs, self.Gams[:,ii])
-                Robs_cj = Rint(tts[filTM][filTm])
+                Robs_cj = Rint(tts[filTM_cj][filTm_cj])
                 GamObs_cj = Gamint(Robs_cj)
                 if len(GamObs_cj)==0: continue
                 BetaObs_cj = sqrt(1.-GamObs_cj**(-2.))
@@ -705,9 +764,8 @@ class jetHeadGauss(jetHeadUD):
                 dopFacs_cj =  self.dopplerFactor(calpha_cj[ii], sqrt(1.-GamObs_cj**(-2)))
                 afac_cj = self.cellSize/maximum(self.cellSize*ones(num)[filTM_cj][filTm_cj], 2.*pi*(1.-cos(1./GamObs_cj)))
 
-                onAxisTobs_cj = dopFacs_cj*tts[filTM_cj][filTm_cj]
 
-                onAxisTobs_cj = onAxisTint(Robs_cj)
+                onAxisTobs_cj = dopFacs_cj*tts[filTM_cj][filTm_cj]
                 Bfield_cj = sqrt(32.*pi*self.nn*self.epB*cts.mp)*cts.cc*GamObs_cj
                 gamMobs_cj, nuMobs_cj = minGam(GamObs_cj, self.epE, self.epB, self.nn, self.pp, Bfield_cj)
                 gamCobs_cj, nuCobs_cj = critGam(GamObs_cj, self.epE, self.epB, self.nn, self.pp, Bfield_cj, onAxisTobs_cj)
@@ -719,7 +777,7 @@ class jetHeadGauss(jetHeadUD):
                 for freq in obsFreqs:
                     fil1, fil2 = where(gamMobs<=gamCobs)[0], where(gamMobs>gamCobs)[0]
                     fil3, fil4 = where(nuM_RS<=nuC_RS)[0], where(nuM_RS>nuC_RS)[0]
-                    fil5, fil6 = where(nuM_cj<=nuC_cj)[0], where(nuM_cj>nuC_cj)[0]
+                    fil5, fil6 = where(nuMobs_cj<=nuCobs_cj)[0], where(nuMobs_cj>nuCobs_cj)[0]
 
                     freqs = freq/dopFacs              # Calculate the rest-frame frequencies correspondng to the observed frequency
                     freqs_cj = freq/dopFacs_cj
@@ -736,11 +794,11 @@ class jetHeadGauss(jetHeadUD):
                     #light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] + (
                     #                                afac[fil4] * dopFacs[fil4]**3. * FluxNuFC_arr(self, nuM_RS[fil4], nuC_RS[fil4], Fnu_RS[fil4], freqs[fil4]))*calpha[ii]
 
-                    light_curve_cj[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] = light_curve_cj[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] + (
-                                                    afac_cj[fil5] * dopFacs_cj[fil5]**3. * FluxNuSC_arr(self, nuM_cj[fil5], nuC_cj[fil5], Fnu_cj[fil5], freqs_cj[fil5]))*calpha_cj[ii]
+                    light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] = light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] + (
+                                                    afac_cj[fil5] * dopFacs_cj[fil5]**3. * FluxNuSC_arr(self, nuMobs_cj[fil5], nuCobs_cj[fil5], Fnuobs_cj[fil5], freqs_cj[fil5]))*calpha_cj[ii]
 
 
-            return tts, light_curve, light_curve_RS
+            return tts, light_curve, light_curve_CJ, light_curve_RS
             #return tts, 2.*light_curve, 2.*light_curve_RS
 
         def light_curve_peer(self, theta_obs, obsFreqs, tt0, ttf, num, Rb):
@@ -813,11 +871,11 @@ class jetHeadGauss(jetHeadUD):
                 # Counter jet stuff
                 ttobs_cj = obsTime_offAxis_General(self.RRs, self.TTs[:,ii], alpha_cj[ii])
                 filTM_cj  = where(tts<=max(ttobs_cj))[0]
-                filTm_cj  = where(tts[filTM]>=min(ttobs_cj))[0]
+                filTm_cj  = where(tts[filTM_cj]>=min(ttobs_cj))[0]
 
                 Rint_cj = interp1d(ttobs_cj, RRs)
                 #Gamint = interp1d(RRs, self.Gams[:,ii])
-                Robs_cj = Rint(tts[filTM][filTm])
+                Robs_cj = Rint(tts[filTM_cj][filTm_cj])
                 GamObs_cj = Gamint(Robs_cj)
                 if len(GamObs_cj)==0: continue
                 BetaObs_cj = sqrt(1.-GamObs_cj**(-2.))
@@ -846,7 +904,7 @@ class jetHeadGauss(jetHeadUD):
                     #                            (GamObs[fil4]*(1.-BetaObs[fil4]*calpha[fil4][ii]))**(-3.)* FluxNuFC_arr(self, nuM_RS[fil4], nuC_RS[fil4], Fnu_RS[fil4], freqs[fil4]))#*calpha[ii]
 
 
-                    fil5, fil6 = where(nuM_RS<=nuC_RS)[0], where(nuM_RS>nuC_RS)[0]
+                    fil5, fil6 = where(nuMobs_cj<=nuCobs_cj)[0], where(nuMobs_cj>nuCobs_cj)[0]
                     freqs_cj = freq/dopFacs_cj
                     light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] = light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] + (
                                                 self.cellSize*(GamObs_cj[fil5]*(1.-BetaObs_cj[fil5]*calpha_cj[ii]))**(-3.) * FluxNuSC_arr(self,
@@ -889,33 +947,33 @@ class jetHeadGauss(jetHeadUD):
 
             if self.evolution == 'adiabatic':
                 for ii in tqdm(range(self.ncells)):
-                    Tint = interp1d(self.RRs, self.TTs[:,ii])
-                    ttobs = obsTime_offAxis_UR(self.RRs, self.TTs[:,ii], self.Betas[:,ii], alpha[ii])
-                    ttobs_cj = obsTime_offAxis_UR(self.RRs, self.TTs[:,ii], self.Betas[:,ii], alpha[ii+self.ncells])
+                    Tint = interp1d(self.RRs[:,ii], self.TTs[:,ii])
+                    ttobs = obsTime_offAxis_UR(self.RRs[:,ii], self.TTs[:,ii], self.Betas[:,ii], alpha[ii])
+                    ttobs_cj = obsTime_offAxis_UR(self.RRs[:,ii], self.TTs[:,ii], self.Betas[:,ii], alpha[ii+self.ncells])
 
-                    Rint = interp1d(ttobs, self.RRs)
-                    Rint_cj = interp1d(ttobs_cj, self.RRs)
+                    Rint = interp1d(ttobs, self.RRs[:,ii])
+                    Rint_cj = interp1d(ttobs_cj, self.RRs[:,ii])
 
                     RRs[ii] = Rint(tt_obs)
                     RRs[ii+self.ncells] = Rint_cj(tt_obs)
                     TTs[ii], TTs[ii+self.ncells] = Tint(RRs[ii]), Tint(RRs[ii+self.ncells])
 
 
-                    GamInt   = interp1d(self.RRs, self.Gams[:,ii])
+                    GamInt   = interp1d(self.RRs[:,ii], self.Gams[:,ii])
                     Gams[ii], Gams[ii+self.ncells] = GamInt(RRs[ii]), GamInt(RRs[ii+self.ncells])
 
                 Betas     = sqrt(1.-Gams**(-2.))
                 Bf        = (32.*pi*self.nn*self.epB*cts.mp)**(1./2.) * Gams*cts.cc
                 gamM, nuM = minGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf)
                 gamC, nuC = critGam(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
-                fluxMax   = fluxMax(RRs, Gams, self.nn, Bf, self.DD)
+                flux      = fluxMax(RRs, Gams, self.nn, Bf, self.DD)
                 #fluxMax[Gams<=2] = 0.
 
                 dopFacs =  self.dopplerFactor(calpha, sqrt(1.-Gams**(-2)))
-                afac = self.cellSize/maximum(self.cellSize*ones(num), 2.*pi*(1.-cos(1./Gams)))
+                afac = self.cellSize/maximum(self.cellSize, 2.*pi*(1.-cos(1./Gams)))
                 obsFreqs = freq/dopFacs
 
-                fluxes = (self.DD**2./abs(calpha)*self.cellSize*RRs**2.) * afac * dopFacs**3. * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)*1./calpha
+                fluxes = (self.DD**2./(abs(calpha)*self.cellSize*RRs**2.)) * afac * dopFacs**3. * FluxNuSC_arr(self, nuM, nuC, flux, obsFreqs)
 
 
 
@@ -938,7 +996,7 @@ class jetHeadGauss(jetHeadUD):
                 Bf        = Bfield_modified(Gams, Betas, self.nn, self.epB)
                 gamM, nuM = minGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, self.Xp)
                 gamC, nuC = critGam_modified(Gams, self.epE, self.epB, self.nn, self.pp, Bf, TTs)
-                fluxMax   = fluxMax_modified(RRs, Gams, self.nn, Bf, self.DD, self.PhiP)
+                flux   = fluxMax_modified(RRs, Gams, self.nn, Bf, self.DD, self.PhiP)
                 #fluxMax[Gams<=5] = 0.
                 #nuM, nuC = nuM/Gams, nuC/Gams
 
@@ -946,9 +1004,9 @@ class jetHeadGauss(jetHeadUD):
                 obsFreqs = freq/dopFacs
 
                 #afac = self.cellSize/maximum(self.cellSize*ones(self.ncells), 2.*pi*(1.-cos(1./Gams)))
-                fluxes = (self.DD**2./(abs(calpha)*self.cellSize*RRs**2.)) *self.cellSize*  (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)
+                fluxes = (self.DD**2./(abs(calpha)*self.cellSize*RRs**2.)) *self.cellSize*  (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, flux, obsFreqs)
                 #fluxes = (Gams*(1.-Betas*calpha))**(-3.) * FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)*1./calpha
-                fluxes2 = self.cellSize*(Gams*(1.-Betas*calpha))**(-3.)*FluxNuSC_arr(self, nuM, nuC, fluxMax, obsFreqs)
+                fluxes2 = self.cellSize*(Gams*(1.-Betas*calpha))**(-3.)*FluxNuSC_arr(self, nuM, nuC, flux, obsFreqs)
 
 
 
