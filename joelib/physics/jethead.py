@@ -965,7 +965,7 @@ class jetHeadGauss(jetHeadUD):
             im_xxs[:self.ncells] = -1.*cos(theta_obs)*sin(self.cthetas)*sin(self.cphis) + sin(theta_obs)*cos(self.cthetas)
             im_yys[:self.ncells] = sin(self.cthetas)*cos(self.cphis)
 
-            im_xxs[self.ncells:] = -1.*cos(theta_obs)*sin(self.cthetas+pi)*sin(self.cphis) + sin(theta_obs)*cos(pi-self.cthetas)
+            im_xxs[self.ncells:] = -1.*cos(theta_obs)*sin(pi-self.cthetas)*sin(self.cphis) + sin(theta_obs)*cos(pi-self.cthetas)
             im_yys[self.ncells:] = sin(pi-self.cthetas)*cos(self.cphis)
 
 
