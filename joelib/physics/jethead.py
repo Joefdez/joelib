@@ -398,10 +398,12 @@ class jetHeadUD(adiabatic_afterglow):
         im_xxs[self.ncells:] = -1.*cos(theta_obs)*sin(self.cthetas+pi)*sin(self.cphis) + sin(theta_obs)*cos(self.cthetas+pi)
         im_yys[self.ncells:] = sin(self.cthetas+pi)*cos(self.cphis)
 
+        indices = where(im_yys>0)
+
 
         if self.evolution == 'adiabatic':
             Tint = interp1d(self.RRs, self.TTs)
-            for ii in tqdm(range(self.ncells)):
+            for ii in tqdm(indices):#tqdm(range(self.ncells)):
                 ttobs = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha[ii])
                 ttobs_cj = obsTime_offAxis_UR(self.RRs, self.TTs, self.Betas, alpha[ii+self.ncells])
                 Rint = interp1d(ttobs, self.RRs)
