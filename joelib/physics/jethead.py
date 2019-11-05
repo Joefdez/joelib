@@ -103,8 +103,8 @@ class jetHeadUD(adiabatic_afterglow):
         u_obs_y, u_obs_z = sin(theta_obs), cos(theta_obs)
 
         #seg_x =
-        seg_y = sin(self.cthetas+pi)*sin(self.cphis)
-        seg_z = cos(self.cthetas+pi)
+        seg_y = sin(pi-self.cthetas)*sin(self.cphis)
+        seg_z = cos(pi-self.cthetas)
 
         #return  arccos(u_obs_x*seg_x + u_obs_y*seg_y + u_obs_z*seg_z)
         return  u_obs_y*seg_y + u_obs_z*seg_z
@@ -395,8 +395,8 @@ class jetHeadUD(adiabatic_afterglow):
         im_xxs[:self.ncells] = -1.*cos(theta_obs)*sin(self.cthetas)*sin(self.cphis) + sin(theta_obs)*cos(self.cthetas)
         im_yys[:self.ncells] = sin(self.cthetas)*cos(self.cphis)
 
-        im_xxs[self.ncells:] = -1.*cos(theta_obs)*sin(self.cthetas+pi)*sin(self.cphis) + sin(theta_obs)*cos(self.cthetas+pi)
-        im_yys[self.ncells:] = sin(self.cthetas+pi)*cos(self.cphis)
+        im_xxs[self.ncells:] = -1.*cos(theta_obs)*sin(pi-self.cthetas)*sin(self.cphis) + sin(theta_obs)*cos(pi-self.cthetas)
+        im_yys[self.ncells:] = sin(pi-self.cthetas)*cos(self.cphis)
 
         indices = where(im_yys>0)
 
@@ -965,8 +965,8 @@ class jetHeadGauss(jetHeadUD):
             im_xxs[:self.ncells] = -1.*cos(theta_obs)*sin(self.cthetas)*sin(self.cphis) + sin(theta_obs)*cos(self.cthetas)
             im_yys[:self.ncells] = sin(self.cthetas)*cos(self.cphis)
 
-            im_xxs[self.ncells:] = -1.*cos(theta_obs)*sin(self.cthetas+pi)*sin(self.cphis) + sin(theta_obs)*cos(self.cthetas+pi)
-            im_yys[self.ncells:] = sin(self.cthetas+pi)*cos(self.cphis)
+            im_xxs[self.ncells:] = -1.*cos(theta_obs)*sin(self.cthetas+pi)*sin(self.cphis) + sin(theta_obs)*cos(pi-self.cthetas)
+            im_yys[self.ncells:] = sin(pi-self.cthetas)*cos(self.cphis)
 
 
             if self.evolution == 'adiabatic':
