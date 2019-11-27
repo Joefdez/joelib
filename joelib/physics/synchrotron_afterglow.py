@@ -85,9 +85,11 @@ def minGam_modified(Gam, epE, epB, nn, pp, Bfield, Xp):
 
     # Modified expression for non-relativistic case
 
+    beta = sqrt(1.-Gam**(-2))
+
     GamMin    = 1. + cts.mp/cts.me * (pp-2.)/(pp-1.) * epE * (Gam - 1.)
     #Bfield    = sqrt(32. * pi * cts.mp * cts.cc**2. * epB * nn * Gam*(Gam-1))
-    nuGM      = 3.*Xp*Gam*GamMin**2.*cts.qe*Bfield/(4.*pi*cts.me*cts.cc)
+    nuGM      = 3.*Xp*(Gam*(1.-beta))**(-1)*GamMin**2.*cts.qe*Bfield/(4.*pi*cts.me*cts.cc)
 
     return GamMin, nuGM
 
@@ -96,9 +98,12 @@ def critGam_modified(Gam, epE, epB, nn, pp, Bfield, tt):
 
     # Modified expression for non-relativistic case
 
+    beta = sqrt(1.-Gam**(-2))
+
+
     #Bfield    = sqrt(32. * pi * cts.mp * cts.cc**2. * epB * nn * Gam*(Gam-1))
     GamCrit   = 6.*pi*cts.me*cts.cc/(cts.sigT*Gam*tt*Bfield**2.)
-    nuCrit   = 0.286*3*Gam*GamCrit**2. * cts.qe * Bfield/(4.*pi*cts.me*cts.cc) # Gam factor to convert to observer frame
+    nuCrit   = 0.286*3*(Gam*(1.-beta))**(-1.)*GamCrit**2. * cts.qe * Bfield/(4.*pi*cts.me*cts.cc) # Gam factor to convert to observer frame
 
     return GamCrit, nuCrit
 
