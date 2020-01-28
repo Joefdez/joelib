@@ -111,7 +111,7 @@ def critGam_modified(Gam, epE, epB, nn, pp, Bfield, tt):
 def fluxMax_modified(RR, Gam, nn, Bfield, DD, PhiP):
 
     #fmax = sqrt(3)*nn*RR**3.*cts.qe**3.*Bfield/(3.*cts.me*cts.cc**2.*4.*pi*DD**2.) *PhiP #
-    fmax = sqrt(3)*nn*RR**3.*cts.qe**3.*Bfield/(3.*cts.me*cts.cc**2.*4.*pi*DD**2.) *PhiP #
+    fmax = sqrt(3)*nn*RR**3.*cts.qe**3.*Bfield/(cts.me*cts.cc**2.*4.*pi*DD**2.) *PhiP #
 
 
     return fmax
@@ -392,6 +392,10 @@ def evolve_relad(jet):
     return RRs, Gams, Betas, Rsd
 
 
+
+
+
+
 #############################################################################################################
 #############################################################################################################
 #############################################################################################################
@@ -524,7 +528,7 @@ class adiabatic_afterglow:
             self.gC, self.nuC = critGam(self.Gams, self.epE, self.epB, self.nn, self.pp, self.Bfield, self.TTs)
         elif self.evolution == 'peer':
             self.gM, self.nuM = minGam_modified(self.Gams, self.epE, self.epB, self.nn, self.pp, self.Bfield, self.Xp)
-            self.gC, self.nuC = critGam_modified(self.Gams, self.epE, self.epB, self.nn, self.pp, self.Bfield, self.TTs, )
+            self.gC, self.nuC = critGam_modified(self.Gams, self.epE, self.epB, self.nn, self.pp, self.Bfield, self.TTs)
 
         self.gamMI, self.gamCI = interp1d(self.RRs, self.gM), interp1d(self.RRs, self.gC)
         self.nuMI, self.nuCI = interp1d(self.RRs, self.nuM), interp1d(self.RRs, self.nuC)

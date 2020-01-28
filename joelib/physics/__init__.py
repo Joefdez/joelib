@@ -1,4 +1,4 @@
-__all__ = ["binary", "binaryGW", "petersev", "synchrotron_afterglow", "jethead"]
+__all__ = ["binary", "binaryGW", "petersev", "synchrotron_afterglow", "jethead", "grb_observables", "afterglow_properties", "afterglow_dynamics", "jethead_expansion"]
 #from binary import *
 #from binaryGW import *
 #from petersev import *

@@ -1,21 +1,31 @@
+from binarySystem import *
+
 class binaryGW:
 
     def __init__(self):
         pass
 
-    def chirpMass(self, m1, m2):
+    def chirpMass(m1, m2):
 
         return (m1*m2)**(3./5.)/(m1+m2)**(1./5.)
 
-    def circStrain(self, m1, m2, ff, DD):
+    def circStrain(m1, m2, ff, DD):
         # Sourced from  ref:
         cM = chirpMass(m1, m2)
         return 1./DD * 2.*(4.*pi)**(1./3.)*GG**(5./3.)/cc**4. * ff**(2./3.) * cM**(5./3.)
 
-    def peakFreqEcc(self, ee, ff0, ee0):
-        # Compute the peak gravitational wave frequency given the initial eccenricity and initial orbital frequency
-        orbF = orbFreqEcc(ee, ff0, ee0)
+    def peakFreqEcc_approx(mm1, mm2, aa, ee):
+        """
+        Compute the peak gravitational wave frequency
+        """
+        orbF = freq(mm1, mm2, aa)
         return 2.*orbF*(1.-ee)**(-3./2.)
+
+#    def peakFreqEcc(mm1, mm2, aa, ee):
+
+#        orbF = freq(mm1, mm2, aa)
+#        return 2.*orbF*(1.-ee)**(1.1954)/(1.-ee**2.)**(3./2.)
+
 
     def eccF(ee):
         """
@@ -43,6 +53,24 @@ class binaryGW:
         preFac =  (GG*cMass)**(5./3.)/(3.*pi**(1./3.)*(1.+ zz)**(1./3.)*ff**(1./3.))
 
         return preFac*(2./nn)**(2./3.) * gg/enhancement
+
+    def eccEVinitcond(aa0, ee0):
+        """
+        Initial condition coefficient in sma evolution as a function of eccentricity with
+        initial conditions aa0 and ee0.
+        """
+        cc0 = (1-ee0**2.)/(ee0**(12./19.)) *(1.+121./304. * ee0**2.)**(-870./2299.) *aa0
+
+        return cc0
+
+    def evolution_sma(aa, ee, cc0):
+        """
+        Semi-major axis
+        """
+
+        aa = cc0 *ee**(12./19.)/(1.-ee**2.) * (1. + 121./304. *ee**2.)**(870./2299.)
+
+        return aa
 
 
 bgw = binaryGW()

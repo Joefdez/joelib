@@ -489,7 +489,7 @@ class jetHeadGauss(jetHeadUD):
         def __energies_and_LF(self):
 
             #AngFacs = exp(-1.*self.cthetas**2./(2.*self.coAngle**2.))
-            self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(2.*self.coAngle**2.))    # Just for texting
+            self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(2*self.coAngle**2.))    # Just for texting
             #self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(self.coAngle**2.))
             self.cell_Gam0s = 1.+(self.Gam0-1)*exp(-1.*self.cthetas**2./(2.*self.coAngle**2.))
             self.cell_Beta0s = sqrt(1.-(self.cell_Gam0s)**(-2.))
