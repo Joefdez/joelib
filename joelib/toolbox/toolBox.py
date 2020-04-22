@@ -41,15 +41,28 @@ def uniformLog(aa, bb, nn):
 
 
 def rk4(dydr, obj, x0, y0, hh ):
-      # Count number of iterations using step size or
-      # step height h
-      # Iterate for number of iterations
+
 
       "Apply Runge Kutta Formulas to find next value of y"
       k1 = hh * dydr(obj, y0, x0)
       k2 = hh * dydr(obj, y0 + 0.5 * k1, x0 + 0.5 * hh)
       k3 = hh * dydr(obj, y0 + 0.5 * k2, x0 + 0.5 * hh)
       k4 = hh * dydr(obj, y0 + k3, x0 + hh)
+
+      # Update next value of y
+      yy = y0 + (1.0 / 6.0)*(k1 + 2 * k2 + 2 * k3 + k4)
+
+
+      return yy
+
+def rk4_latexp2(dydr, x0, y0, hh, params):
+
+
+      "Apply Runge Kutta Formulas to find next value of y"
+      k1 = hh * dydr(y0, x0)
+      k2 = hh * dydr(y0 + 0.5 * k1, x0 + 0.5 * hh)
+      k3 = hh * dydr(y0 + 0.5 * k2, x0 + 0.5 * hh)
+      k4 = hh * dydr(y0 + k3, x0 + hh)
 
       # Update next value of y
       yy = y0 + (1.0 / 6.0)*(k1 + 2 * k2 + 2 * k3 + k4)

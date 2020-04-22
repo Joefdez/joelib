@@ -1,6 +1,6 @@
 from numpy import *
 import joelib.constants.constants as cts
-from synchrotron_afterglow import *
+from joelib.physics.synchrotron_afterglow import *
 from scipy.stats import binned_statistic
 from scipy.interpolate import interp1d
 from tqdm import tqdm
@@ -143,7 +143,7 @@ class jetHeadUD(adiabatic_afterglow):
 
 
         if (ttf>max_Tobs or ttf>max_Tobs_cj):
-            print ("ttf larger than maximum observable time. Adjusting value.")
+            print("ttf larger than maximum observable time. Adjusting value.")
             ttf = min(max_Tobs, max_Tobs_cj)
 
 
@@ -266,7 +266,7 @@ class jetHeadUD(adiabatic_afterglow):
 
 
         if (ttf>max_Tobs or ttf>max_Tobs_cj):
-            print "ttf larger than maximum observable time. Adjusting value. "
+            print("ttf larger than maximum observable time. Adjusting value. ")
             ttf = min(max_Tobs, max_Tobs_cj)
 
         lt0 = log10(tt0*cts.sTd) # Convert to seconds and then logspace
@@ -480,16 +480,16 @@ class jetHeadGauss(jetHeadUD):
                 self.cell_Rds = (3./(4.*pi) * 1./(cts.cc**2.*cts.mp) *
                                     self.cell_EEs/(self.nn*self.cell_Gam0s**2.))**(1./3.)
                 self.cell_Tds = self.cell_Rds/(cts.cc*self.cell_Beta0s) * (1.-self.cell_Beta0s)
-            print "Calculating dynamical evolution"
+            print("Calculating dynamical evolution")
             self.__evolve()
-            print "Calculating reverse shock parmeters"
+            print("Calculating reverse shock parmeters")
             self.__peakParamsRS_struc()
 
 
         def __energies_and_LF(self):
 
             #AngFacs = exp(-1.*self.cthetas**2./(2.*self.coAngle**2.))
-            self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(2*self.coAngle**2.))    # Just for texting
+            self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(self.coAngle**2.))    # Just for texting
             #self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(self.coAngle**2.))
             self.cell_Gam0s = 1.+(self.Gam0-1)*exp(-1.*self.cthetas**2./(2.*self.coAngle**2.))
             self.cell_Beta0s = sqrt(1.-(self.cell_Gam0s)**(-2.))
@@ -607,7 +607,7 @@ class jetHeadGauss(jetHeadUD):
 
             Betas = sqrt(1.-1./Gams**2.)
             #Betas[-1] = 0.0
-            print shape(Gams)
+            #print(shape(Gams))
 
             return RRs, Gams, Betas
 
@@ -716,7 +716,7 @@ class jetHeadGauss(jetHeadUD):
             #max_Tobs_oa = max(self.TTs[:,-1])
             #max_Tobs = max(obsTime_offAxis(self, self.RRs, self.TTs[:,alpha==max(alpha)][:,0], max(alpha)))/cts.sTd
             if ttf>max_Tobs:
-                print "ttf larger than maximum observable time. Adjusting value. "
+                print("ttf larger than maximum observable time. Adjusting value. ")
                 ttf = max_Tobs
 
             lt0 = log10(tt0*cts.sTd) # Convert to seconds and then logspace
@@ -836,7 +836,7 @@ class jetHeadGauss(jetHeadUD):
             max_Tobs = max(obsTime_offAxis_General(self.RRs, self.TTs[:,-1], max(alpha)))
 
             if ttf>max_Tobs:
-                print "ttf larger than maximum observable time. Adjusting value."
+                print("ttf larger than maximum observable time. Adjusting value.")
                 ttf = max_Tobs
 
             lt0 = log10(tt0*cts.sTd) # Convert to seconds and then logspace
