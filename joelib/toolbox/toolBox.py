@@ -69,3 +69,17 @@ def rk4_latexp2(dydr, x0, y0, hh, params):
 
 
       return yy
+
+
+
+
+def weighted_average_std(values, weights, keepdims=False):
+    """
+    Return the weighted average and standard deviation.
+
+    values, weights -- Numpy ndarrays with the same shape.
+    """
+    av = average(values, weights=weights)
+    # Fast and numerically precise:
+    var = average((values-av)**2, weights=weights)
+    return (av, sqrt(var))

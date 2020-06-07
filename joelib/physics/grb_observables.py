@@ -4,6 +4,7 @@ from tqdm import *
 from joelib.physics.afterglow_dynamics import obsTime_offAxis_General_NEXP, obsTime_offAxis_General_EXP
 from joelib.physics.afterglow_properties import *
 from scipy.interpolate import interp1d
+from scipy.interpolate import griddata as gdd
 from matplotlib.pylab import *
 
 
@@ -52,7 +53,23 @@ def dopplerFactor(cosa, beta):
 
 
 
-def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, tt0, ttf, num, Rb):
+def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, num, Rb):
+
+
+        # Takes top hat jet as input parameter!
+
+        if rangeType=='range':
+
+            tt0, ttf, num = timeD
+
+            lt0 = log10(tt0*sTd) # Convert to seconds and then logspace
+            ltf = log10(ttf*sTd) # Convert to seconds and then logspace
+            tts = logspace(lt0, ltf+(ltf-lt0)/num, num) # Timeline on which the flux is evaluated.
+
+        elif rangeType=='discrete':
+
+            tts, num = timeD, len(timeD)
+
 
         # Takes top hat jet as input parameter!
 
@@ -199,16 +216,18 @@ def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, tt0, ttf, num, Rb):
                                         (GamObs[fil1]*(1.-BetaObs[fil1]*calpha[fil1]))**(-3.)  * FluxNuSC_arr(jet.pp, nuMobs[fil1], nuCobs[fil1], Fnuobs[fil1], freqs[fil1]))#*calpha
                 #light_curve[obsFreqs==freq, :] = light_curve[obsFreqs==freq, :] + (
                 #                        (GamObs*(1.-BetaObs*calpha))**(-3.)  * FluxNuSC_arr(jet.pp, nuMobs, nuCobs, Fnuobs, freqs))#*calpha
-                #light_curve[obsFreqs==freq, filTM[filTm][fil2]] = light_curve[obsFreqs==freq, filTM[filTm][fil2]] + (
-                #                                    afac[fil2] * dopFacs[fil2]**3. * FluxNuFC_arr(jet, nuMobs[fil2], nuCobs[fil2], Fnuobs[fil2], freqs[fil2]))*calpha
-
+                if len(fil2[fil2])>0:
+                    light_curve[obsFreqs==freq, filTM[filTm][fil2]] = light_curve[obsFreqs==freq, filTM[filTm][fil2]] + (
+                                (GamObs[fil2]*(1.-BetaObs[fil2]*calpha[fil2]))**(-3.)  * FluxNuSC_arr(jet.pp, nuMobs[fil2], nuCobs[fil2], Fnuobs[fil2], freqs[fil2]))#*calpha
                 #light_curve_RS[obsFreqs==freq, filTM[filTm][fil3]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil3]] + (
                 #                        (GamObs[fil3]*(1.-BetaObs[fil3]*calpha[fil3]))**(-3.) * FluxNuSC_arr(jet.pp, nuM_RS[fil3], nuC_RS[fil3], Fnu_RS[fil3], freqs[fil3]))#*calpha
                 #light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] + (
                 #                                    afac[fil4] * dopFacs[fil4]**3. * FluxNuFC_arr(jet, nuM_RS[fil4], nuC_RS[fil4], Fnu_RS[fil4], freqs[fil4]))*calpha
                 light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] = light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] + (
                                         (GamObs_cj[fil5]*(1.-BetaObs_cj[fil5]*calpha_cj[fil5]))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs_cj[fil5], nuCobs_cj[fil5], Fnuobs_cj[fil5], freqs_cj[fil5]))#*calpha
-
+                if len(fil6[fil6])>0:
+                    light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil6]] = light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil6]] + (
+                                        (GamObs_cj[fil6]*(1.-BetaObs_cj[fil6]*calpha_cj[fil6]))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs_cj[fil6], nuCobs_cj[fil6], Fnuobs_cj[fil6], freqs_cj[fil6]))#*calpha
 
 
         #return tts, 2.*light_curve, 2.*light_curve_RS
@@ -217,11 +236,24 @@ def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, tt0, ttf, num, Rb):
 
 
 
-def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, tt0, ttf, num, Rb):
+def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
 
         # Takes top hat jet as input parameter!
 
-        if type(obsFreqs)==float:
+        if rangeType=='range':
+
+            tt0, ttf, num = timeD
+
+            lt0 = log10(tt0*sTd) # Convert to seconds and then logspace
+            ltf = log10(ttf*sTd) # Convert to seconds and then logspace
+            tts = logspace(lt0, ltf+(ltf-lt0)/num, num) # Timeline on which the flux is evaluated.
+
+        elif rangeType=='discrete':
+
+            tts, num = timeD, len(timeD)
+
+
+        if type(obsFreqs)!=ndarray:
             obsFreqs  = array([obsFreqs])
 
         #calpha = obsangle(jet.cthetas, jet.cphis, alpha_obs)
@@ -237,10 +269,7 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, tt0, ttf, num, Rb):
 #            print "ttf larger than maximum observable time. Adjusting value. "
 #            ttf = min(max_Tobs, max_Tobs_cj)
 
-        lt0 = log10(tt0*sTd) # Convert to seconds and then logspace
-        ltf = log10(ttf*sTd) # Convert to seconds and then logspace
 
-        tts = logspace(lt0, ltf+(ltf-lt0)/num, num) # Timeline on which the flux is evaluated.
 
 
         light_curve      = zeros([len(obsFreqs), num])
@@ -378,9 +407,9 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, tt0, ttf, num, Rb):
 
                 light_curve[obsFreqs==freq, filTM[filTm][fil1]] = light_curve[obsFreqs==freq, filTM[filTm][fil1]] + (
                                         (GamObs[fil1]*(1.-BetaObs[fil1]*calpha[fil1]))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs[fil1], nuCobs[fil1], Fnuobs[fil1], freqs[fil1]))
-                if len(fil2[fil2])>0:
-                    light_curve[obsFreqs==freq, filTM[filTm][fil2]] = light_curve[obsFreqs==freq, filTM[filTm][fil2]] + (
-                                        (GamObs[fil2]*(1.-BetaObs[fil2]*calpha[fil2]))**(-3.) * FluxNuFC_arr(jet.pp, nuMobs[fil2], nuCobs[fil2], Fnuobs[fil2], freqs[fil2]))#*calpha
+                #if len(fil2[fil2])>0:
+                #    light_curve[obsFreqs==freq, filTM[filTm][fil2]] = light_curve[obsFreqs==freq, filTM[filTm][fil2]] + (
+                #                        (GamObs[fil2]*(1.-BetaObs[fil2]*calpha[fil2]))**(-3.) * FluxNuFC_arr(jet.pp, nuMobs[fil2], nuCobs[fil2], Fnuobs[fil2], freqs[fil2]))#*calpha
 
                 light_curve_RS[obsFreqs==freq, filTM[filTm][fil3]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil3]] + (
                                         (GamObs[fil3]*(1.-BetaObs[fil3]*calpha[fil3]))**(-3.) * FluxNuSC_arr(jet.pp, nuM_RS[fil3], nuC_RS[fil3], Fnu_RS[fil3], freqs[fil3]))#*calpha
@@ -549,3 +578,69 @@ def skymapSJ(jet, alpha_obs, tt_obs, freq, velocity=False):
     fluxes = 1./(abs(calphas)*RRs**2.) * (Gams*(1.-Betas*calphas))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs, nuCobs, Fnuobs, obsFreqs)
 
     return fluxes, RRs*im_xxs, RRs*im_yys, RRs, Gams, calphas, TTs
+
+
+
+def skyMap_to_Grid(fluxes, xxs, yys, nx, ny=1, fac=1, scale=False, inter='linear'):
+
+    # Function maps the coordinate output of the skymap functions to a grid.
+    # Basically a wrapper for gdd and mgrid
+
+
+    if (ny==1 and not scale):
+            ny = nx
+    elif (scale):
+        dX = xxs.max()-xxs.min()
+        dY = yys.max()-yys.min()
+        fac = max(dX,dY)/min(dX,dY)
+        print fac
+        if(dY>=dX):
+            ny = round(fac*nx)
+        else:
+            ny = nx
+            nx = round(fac*nx)
+
+    else:
+        pass
+
+    nx = complex(0,nx)
+    ny = complex(0,ny)
+
+
+    grid_x, grid_y = mgrid[xxs.min():xxs.max():nx, yys.min():yys.max():ny]
+    image = gdd(array([xxs,yys]).T*fac, fluxes,
+                    (grid_x*fac, grid_y*fac), method=inter, fill_value=0)
+
+    # RETURNS ARRAY WITH NX ROWS AND NY COLUMS (i.e. each row, which represents a horizontal position in x has ny divisions)
+
+    return grid_x[:,0], grid_y[0,:], image
+
+
+def lateral_distributions(image, collapse_axis):
+
+    if collapse_axis == 'x':
+        points = image.shape[1]
+        latAvDist  = array([image[:,ii].mean() for ii in range(points)])
+        latMaxDist = array([image[:,ii].max() for ii in range(points)])
+
+    elif collapse_axis == 'y':
+        points = image.shape[0]
+        latAvDist  = array([image[ii,:].mean() for ii in range(points)])
+        latMaxDist = array([image[ii,:].max() for ii in range(points)])
+
+    return latAvDist, latMaxDist
+
+
+def image_slice(fluxes, xxs, yys, position, nn=50, axis='y', inter='linear', fac=1):
+
+    nn = complex(0,nn)
+    if axis=='y':
+        grid_x, grid_y = mgrid[position:position:1j, yys.min():yys.max():nn]
+    else:
+        grid_x, grid_y = mgrid[xxs.min():xxs.max():nn, position:position:1j]
+
+    slice = gdd(array([xxs,yys]).T*fac, fluxes,
+                    (grid_x*fac, grid_y*fac), method=inter, fill_value=0)
+
+
+    return grid_x, grid_y, slice

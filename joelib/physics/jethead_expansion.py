@@ -188,8 +188,9 @@ class jetHeadGauss():
             self.Gamc0 = Gamc0
             self.Rmin, self.Rmax = Rmin, Rmax
             self.nlayers = nlayers
-            self.initJoAngle = initJoAngle
             self.coAngle = coAngle
+            thetaMax = 2.*sqrt(-2.*self.coAngle**2. * log(1e-10/(self.Gamc0-1.)))
+            self.initJoAngle = min(initJoAngle, thetaMax)                          # Make sure that Gamma > 1 throughout the jet
             self.nn = nn
             self.epE, self.epB, self.pp = epE, epB, pp
             self.aa = aa
@@ -205,6 +206,7 @@ class jetHeadGauss():
             self.cell_Rds = (3./(4.*pi) * 1./(cc**2.*mp) *
                                 self.cell_EEs/(self.nn*self.cell_Gam0s**2.))**(1./3.)
             self.cell_Tds = self.cell_Rds/(cc*self.cell_Beta0s) * (1.-self.cell_Beta0s)
+            if self.Rmin>0.01 * self.cell_Rds.min(): self.Rmin = 0.01 * self.cell_Rds.min()
 
 
             self.Gams, self.mms = zeros([self.steps, self.nlayers]), zeros([self.steps, self.nlayers])

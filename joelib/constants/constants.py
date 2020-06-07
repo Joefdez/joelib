@@ -24,7 +24,7 @@ pc   = 3.0857e18              # Parsec in cm
 
 sTy  = 365.*24.*60.*60.       # seconds to years conversion factor
 sTd  = 24.*60.*60.            # seconds to days conversion factor
-
+rad2mas = 206264806.247
 """
 # SI units
 

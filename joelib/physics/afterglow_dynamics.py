@@ -132,7 +132,7 @@ def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angEx
 
 
     # Next calculate the on-axis time for a distant observer
-    """
+    
     betas = sqrt(1.-gammas**(-2.))
     integrand = 1./(cc*gammas**2.*betas*(1.+betas))
     TTs[0] = RRs[0]/(cc*gammas[0]**2.*betas[0]*(1.+betas[0]))
@@ -154,7 +154,7 @@ def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angEx
              #TTs_ne[ii] = trapz(integrand1[0:ii+1], RRs[0:ii+1]) + TTs_ne[0]
              TTs[ii] = trapz(integrand[0:ii+1], RRs[0:ii+1]) + TTs[0]
 
-
+    """
     #TTs = TTs - RRs/cc
 
 
