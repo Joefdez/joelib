@@ -1,3 +1,5 @@
+from multiprocessing import Pool
+import contextlib
 from numpy import *
 from numpy.linalg import solve, det
 from numpy.random import uniform
@@ -43,7 +45,8 @@ def afterglow_likelihood_gaussianJet(model_parameters, data_lc):
 
     jet = Exp.jetHeadGauss(EE, GamC, nn, epsE, epsB, pp, 500, 1e14, 1e22, 'peer', 50, 30.*pi/180, thetaC, aa=1)
     #print jet.TTs.min()
-    freqs = array(data_lc.keys()).astype('float')
+    #freqs = array(data_lc.keys()).astype('float') # python2
+    freqs = array(list(data_lc)).astype('float')   # python3
     tts, lcModel, _, _ = Exp.light_curve_peer_SJ(jet, jet.pp, thetaObs, freqs, 41.3e6*pc, "range", [1.,1000.,100], 1)           # Calculte the model prediction at the observation time
 
     #maskD = [dataType=="lightCurve"]
@@ -53,7 +56,7 @@ def afterglow_likelihood_gaussianJet(model_parameters, data_lc):
     #centShiftFreqs, centShiftdata, centShiftErr = frequencies[maskC] #, data[maskC], data_err[maskC]
 
 
-    for ii, freq in zip(range(len(freqs)), data_lc.keys()):
+    for ii, freq in zip(range(len(freqs)), list(data_lc)):
 
         times, lc, lc_err = data_lc[freq][0,:], data_lc[freq][1,:], data_lc[freq][2,:]                              # Get the observational times and data
 
@@ -104,6 +107,7 @@ def initialize_walkers(nwalkers, nparameters, ranges):
 
 
 
+
 data = genfromtxt("gw170817_data.txt", dtype='str')
 data = data[data[:,-1].astype('float')>0]
 ranges = [[51., 53.], [100.,1000.], [0.01, 0.1], [0.3, 0.4], [-4.,-0.5], [-4.,-0.5], [-5., 0.], [2.01, 2.25]]
@@ -111,8 +115,14 @@ DD = 41.3e6*pc
 
 freqs = unique(data[:,3])
 
-nwalkers = 2
+nwalkers = 40
 nparameters = len(ranges)
+
+#filename = '/data1/arijfern/progress.h5'
+#backend = emcee.backends.HDFBackend(filename)
+#backend.reset(nwalkers, nparameters)
+
+
 
 lc_dict = {}
 
@@ -125,11 +135,14 @@ for freq in freqs:
 
 
 p0 = initialize_walkers(nwalkers, nparameters, ranges)
-sampler = emcee.EnsembleSampler(nwalkers, nparameters, log_probability, args=[ranges, lc_dict])
+#sampler = emcee.EnsembleSampler(nwalkers, nparameters, log_probability, args=[ranges, lc_dict], backend=backend, pool=pool)
 
 # Burn-in steps
-state = sampler.run_mcmc(p0, 10, progress=True)
+#with Pool() as pool:
+p0 = initialize_walkers(nwalkers, nparameters, ranges)
+sampler = emcee.EnsembleSampler(nwalkers, nparameters, log_probability, args=[ranges, lc_dict])
+sampler.run_mcmc(p0, 1000, progress=True)
 sampler.reset()
-
+print("Finished burner steps")
 # Run MCMC
-#sampler.run_mcmc(state, 10000)
+sampler.run_mcmc(state, iterations=20000, progress=True)
