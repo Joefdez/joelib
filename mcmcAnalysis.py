@@ -7,7 +7,9 @@ import joelib.physics.jethead_expansion as Exp
 from joelib.constants.constants import *
 from scipy.interpolate import interp1d
 import emcee
+import os
 
+#os.environ["OMP_NUM"]
 def priors(parameters, ranges):
     # Returns log of prior distribution of parameters with limits on ranges
     # For priors which are uniform in linear space or log space.
@@ -18,11 +20,11 @@ def priors(parameters, ranges):
     for parameter, range in zip(parameters, ranges):
 
         if range[0]<parameter<range[1]:
-            vals.append(range[0]-range[1])
+            vals.append(0.)
         else:
             vals.append(-1.*inf)
 
-    return array(vals)
+    return sum(array(vals))
 
 
 def afterglow_likelihood_gaussianJet(model_parameters, data_lc):
@@ -87,8 +89,8 @@ def afterglow_likelihood_gaussianJet(model_parameters, data_lc):
 def log_probability(parameters, ranges, lc_dict):
     lp = priors(parameters, ranges)
 
-    #if not isfinite(lp):
-    #    return -1.*inf
+    if not isfinite(lp):
+        return -1.*inf
 
     return lp + afterglow_likelihood_gaussianJet(parameters, lc_dict)
 
@@ -118,9 +120,9 @@ freqs = unique(data[:,3])
 nwalkers = 40
 nparameters = len(ranges)
 
-#filename = '/data1/arijfern/progress.h5'
-#backend = emcee.backends.HDFBackend(filename)
-#backend.reset(nwalkers, nparameters)
+filename = '/data1/arijfern/progress.h5'
+backend = emcee.backends.HDFBackend(filename)
+backend.reset(nwalkers, nparameters)
 
 
 
@@ -138,11 +140,11 @@ p0 = initialize_walkers(nwalkers, nparameters, ranges)
 #sampler = emcee.EnsembleSampler(nwalkers, nparameters, log_probability, args=[ranges, lc_dict], backend=backend, pool=pool)
 
 # Burn-in steps
-#with Pool() as pool:
-p0 = initialize_walkers(nwalkers, nparameters, ranges)
-sampler = emcee.EnsembleSampler(nwalkers, nparameters, log_probability, args=[ranges, lc_dict])
-sampler.run_mcmc(p0, 1000, progress=True)
-sampler.reset()
-print("Finished burner steps")
-# Run MCMC
-sampler.run_mcmc(state, iterations=20000, progress=True)
+with Pool(processes=12) as pool:
+    #p0 = initialize_walkers(nwalkers, nparameters, ranges)
+    sampler = emcee.EnsembleSampler(nwalkers, nparameters, log_probability, args=[ranges, lc_dict],backend=backend, pool=pool)
+    sampler.run_mcmc(p0, 1000, progress=True)
+    sampler.reset()
+    print("Finished burner steps")
+    # Run MCMC
+    sampler.run_mcmc(state, iterations=10000, progress=True)
