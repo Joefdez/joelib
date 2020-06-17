@@ -181,7 +181,8 @@ class jetHeadUD():
 class jetHeadGauss():
 
 
-        def __init__(self, EEc0,  Gamc0, nn, epE, epB, pp, steps, Rmin, Rmax, evolution, nlayers, initJoAngle, coAngle, aa, shell_type='thin', Rb=1.):
+        def __init__(self, EEc0,  Gamc0, nn, epE, epB, pp, steps, Rmin, Rmax, evolution, nlayers,
+                                    initJoAngle, coAngle, aa, structure='gaussian',  kk=0, shell_type='thin', Rb=1.):
             self.nlayers = nlayers
             self.steps = steps
             self.EEc0 = EEc0
@@ -189,6 +190,8 @@ class jetHeadGauss():
             self.Rmin, self.Rmax = Rmin, Rmax
             self.nlayers = nlayers
             self.coAngle = coAngle
+            self.structure = structure
+            self.kk = kk
             thetaMax = 2.*sqrt(-2.*self.coAngle**2. * log(1e-10/(self.Gamc0-1.)))
             self.initJoAngle = min(initJoAngle, thetaMax)                          # Make sure that Gamma > 1 throughout the jet
             self.nn = nn
@@ -286,13 +289,27 @@ class jetHeadGauss():
 
 
         def __energies_and_LF(self):
-            #AngFacs = exp(-1.*self.cthetas**2./(2.*self.coAngle**2.))
-            self.cell_EEs = self.EEc0 * exp(-1.*self.cthetas0**2./(self.coAngle**2.))    # Just for texting
-            #self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(self.coAngle**2.))
-            #print shape(self.cthetas0)
-            self.cell_Gam0s = 1.+(self.Gamc0-1)*exp(-1.*self.cthetas0**2./(2.*self.coAngle**2.))
-            self.cell_MM0s = self.cell_EEs/(self.cell_Gam0s*cc**2.)
+
+            if self.structure=='gaussian':
+                #AngFacs = exp(-1.*self.cthetas**2./(2.*self.coAngle**2.))
+                self.cell_EEs = self.EEc0 * exp(-1.*self.cthetas0**2./(self.coAngle**2.))    # Just for texting
+                #self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(self.coAngle**2.))
+                #print shape(self.cthetas0)
+                self.cell_Gam0s = 1.+(self.Gamc0-1)*exp(-1.*self.cthetas0**2./(2.*self.coAngle**2.))
+            elif self.structure=='power-law':
+                self.cell_EEs   = zeros(self.nlayers)
+                self.cell_Gam0s = zeros(self.nlayers)
+                self.cell_EEs[self.cthetas0<=self.coAngle] = self.EEc0
+                self.cell_Gam0s[self.cthetas0<=self.coAngle] = self.Gamc0
+                wings = self.cthetas0>self.coAngle
+                self.cell_EEs[wings] = self.EEc0*(self.cthetas0[wings]/self.coAngle)**(-1.*self.kk)
+                self.cell_Gam0s[wings] = 1. + (self.Gamc0-1.)*(self.cthetas0[wings]/self.coAngle)**(-1.*self.kk)
+
+
             self.cell_Beta0s = sqrt(1.-(self.cell_Gam0s)**(-2.))
+            self.cell_MM0s = self.cell_EEs/(self.cell_Gam0s*cc**2.)
+
+
 
 
         def __thetas_interpolation(self):
