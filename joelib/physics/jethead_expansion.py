@@ -5,7 +5,7 @@ from joelib.physics.grb_observables import *
 from joelib.physics.afterglow_properties import *
 from joelib.physics.afterglow_dynamics import *
 from scipy.interpolate import interp1d
-from tqdm import tqdm
+#from tqdm import tqdm
 #from jethead import jetHeadUD, jetHeadGauss
 
 
@@ -168,7 +168,7 @@ class jetHeadUD():
             # These need to be scaled be the correspinding factor of Rb when calculating light curve
 
             if self.shell_type=='thin':
-                print("Settig up thin shell")
+                #print("Settig up thin shell")
                 #self.RSpeak_nuM = 9.6e14 * epE**2. * epB**(1./2.) * nn**(1./2) * Gam0**2.
                 #self.RSpeak_nuC = 4.0e16 * epB**(-3./2.) * EE**(-2./3.) * nn**(-5./6.) * Gam0**(4./3.)
                 #self.RSpeak_Fnu = 5.2 * DD**(-2.) * epB**(1./2.) * EE * nn**(1./2.) * Gam0
@@ -182,6 +182,7 @@ class jetHeadGauss():
 
 
         def __init__(self, EEc0,  Gamc0, nn, epE, epB, pp, steps, Rmin, Rmax, evolution, nlayers, initJoAngle, coAngle, aa, shell_type='thin', Rb=1.):
+            #print("Running")
             self.nlayers = nlayers
             self.steps = steps
             self.EEc0 = EEc0
@@ -189,7 +190,7 @@ class jetHeadGauss():
             self.Rmin, self.Rmax = Rmin, Rmax
             self.nlayers = nlayers
             self.coAngle = coAngle
-            thetaMax = 2.*sqrt(-2.*self.coAngle**2. * log(1e-10/(self.Gamc0-1.)))
+            thetaMax = 2.*sqrt(-2.*self.coAngle**2. * log(1e-8/(self.Gamc0-1.)))
             self.initJoAngle = min(initJoAngle, thetaMax)                          # Make sure that Gamma > 1 throughout the jet
             self.nn = nn
             self.epE, self.epB, self.pp = epE, epB, pp
@@ -359,7 +360,7 @@ class jetHeadGauss():
 
 
             if self.shell_type=='thin':
-                print("Setting up thin shell")
+                #print("Setting up thin shell")
                 for ii in range(self.nlayers):
                     #self.RSpeak_nuM = 9.6e14 * epE**2. * epB**(1./2.) * nn**(1./2) * Gam0**2.
                     #self.RSpeak_nuC = 4.0e16 * epB**(-3./2.) * EE**(-2./3.) * nn**(-5./6.) * Gam0**(4./3.)
