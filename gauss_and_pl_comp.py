@@ -7,7 +7,7 @@ import joelib.physics.jethead as Nexp
 from scipy.interpolate import griddata as gdd
 
 
-EE = 10**(52.4); GamC = 666; thetaC = 0.09; thetaJ = 30.*pi/180., thetaObs = 0.34; epsB = 10**(-2.1); epsE = 10**(-1.4); nn0 = 10**(-4.1); pp = 2.16
+EE = 10**(52.4); GamC = 666; thetaC = 0.09; thetaJ = 30.*pi/180.; thetaObs = 0.34; epsB = 10**(-2.1); epsE = 10**(-1.4); nn0 = 10**(-4.1); pp = 2.16
 
 
 #jhG    = Exp.jetHeadGauss(EE, GamC,  nn, epsE, epsB, pp, 2000, 1e15, 1e22, "peer", 150, thetaJ, thetaC, aa=1)
