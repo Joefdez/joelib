@@ -54,7 +54,7 @@ for ii in range(nts):
 
 
 timesP = array([])
-xxsP, yysP, ffsP = zeros(ncells2, 3, 4]), zeros(ncells2, 3, 4]), zeros(ncells2, 3, 4])
+xxsP, yysP, ffsP = zeros([ncells2, 3, 4]), zeros([ncells2, 3, 4]), zeros([ncells2, 3, 4])
 xx_avP, yy_avP = zeros([3,4]), zeros([3, 4])
 for ii in range(3):
     for jj in range(4):
