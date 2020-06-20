@@ -78,7 +78,7 @@ def solver_collimated_shell(M0, gamma0, angExt0, RRs, nn, steps):
     return gammas, betas, MMs, TTs
 
 
-def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angExt0, cells):
+def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angExt0, cells, withSpread=True):
 
 
     #Solver for dynamics of laterally expaning shell.
@@ -132,32 +132,22 @@ def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angEx
 
 
     # Next calculate the on-axis time for a distant observer
-    
+
     betas = sqrt(1.-gammas**(-2.))
-    integrand = 1./(cc*gammas**2.*betas*(1.+betas))
-    TTs[0] = RRs[0]/(cc*gammas[0]**2.*betas[0]*(1.+betas[0]))
-    #dtdr = dthetadr(gammas, RRs, thetas, nn, aa)
-    #TTs[0] = RRs[0]*sqrt(1.+ (RRs[0]*dtdr[0])**2)/(cc*betas[0]) - RRs[0]/cc
-    #integrand = sqrt(1.+ (RRs*dtdr)**2)/(cc*betas)
+
+    if withSpread:
+        betas = sqrt(1.-gammas**(-2.))
+        dThetadr = concatenate([zeros(1), diff(thetas)/diff(RRs)])
+        dR       = concatenate([zeros(1), diff(RRs)])
+        integrand = 1./(cc*betas) * sqrt(1.+RRs**2.*dThetadr**2.) - 1./(cc)
+        TTs[0] = RRs[0]/(cc*betas[0])* (sqrt(1.+RRs[0]**2.*dThetadr[0]**2.)) - RRs[0]/cc
+
+    else:
+        integrand = 1./(cc*gammas**2.*betas*(1.+betas))
+        TTs[0] = RRs[0]/(cc*gammas[0]**2.*betas[0]*(1.+betas[0]))
+
     for ii in range(1,steps):
         TTs[ii] = trapz(integrand[0:ii+1], RRs[0:ii+1]) + TTs[0]
-    """
-    betas = sqrt(1.-gammas**(-2.))
-    dThetadr = concatenate([zeros(1), diff(thetas)/diff(RRs)])
-    dR       = concatenate([zeros(1), diff(RRs)])
-         #integrand1 = 1./(cc*Gams**2.*Betas*(1.+Betas))
-    integrand = 1./(cc*betas) * sqrt(1.+RRs**2.*dThetadr**2.) - 1./(cc)
-
-         #TTs_ne[0] = RRs[0]/(cc*Gams[0]**2.*Betas[0]*(1.+Betas[0]))
-    TTs[0] = RRs[0]/(cc*betas[0])* (sqrt(1.+RRs[0]**2.*dThetadr[0]**2.)) - RRs[0]/cc
-    for ii in range(1,steps):
-             #TTs_ne[ii] = trapz(integrand1[0:ii+1], RRs[0:ii+1]) + TTs_ne[0]
-             TTs[ii] = trapz(integrand[0:ii+1], RRs[0:ii+1]) + TTs[0]
-
-    """
-    #TTs = TTs - RRs/cc
-
-
 
     # Just to finish off, calculate the solid angle extent of each ring
 
@@ -168,8 +158,6 @@ def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angEx
 
 
 
-############################################################################### DYNAMICS ACCORDING TO ASAF PE'ER #########################################################################
-##########################################################################################################################################################################################
 
 
 

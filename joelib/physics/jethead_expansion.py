@@ -23,7 +23,10 @@ def cellsInLayer(ii):
 
 class jetHeadUD():
 
-        def __init__(self, EE,  Gam0, nn, epE, epB, pp, steps, Rmin, Rmax, evolution, nlayers, initJoAngle, aa=-1, shell_type='thin', Rb=1.):
+        def __init__(self, EE,  Gam0, nn, epE, epB, pp, steps, Rmin, Rmax,
+                     evolution, nlayers, initJoAngle, aa=-1, shell_type='thin',
+                     Rb=1., withSpread=True):
+
             self.evolution = evolution
             self.nlayers = nlayers
             self.initJoAngle = initJoAngle
@@ -39,6 +42,7 @@ class jetHeadUD():
             self.angExt0 = 2.*pi*(1.-cos(initJoAngle/2.))/self.ncells
             self.steps = steps
             self.shell_type = shell_type
+            self.withSpread = withSpread
             self.Xp   = Xint(pp)
             self.PhiP = PhiPint(pp)
             self.__correct_energy()
@@ -68,7 +72,8 @@ class jetHeadUD():
                 if self.evolution == 'peer':
                 # self.MMs contains the swept-up ISM mass, not to be confused with the ejecta mass self.MM0
                     self.Gams, self.Betas, self.joAngle, self.MMs, self.TTs, __ = solver_expanding_shell(
-                                                self.MM0, self.Gam0, 0., self.initJoAngle/2., self.RRs, self.nn, self.aa, self.steps, self.angExt0, self.ncells)
+                                                self.MM0, self.Gam0, 0., self.initJoAngle/2., self.RRs, self.nn,
+                                                self.aa, self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
 
                 elif self.evolution == 'BM':
                     self.Gams, self.Betas, self.joAngle, self.MMs, self.TTs, __ = BMsolver_expanding_shell(
@@ -180,8 +185,9 @@ class jetHeadUD():
 
 class jetHeadGauss():
 
-        def __init__(self, EEc0,  Gamc0, nn, epE, epB, pp, steps, Rmin, Rmax, evolution, nlayers,
-                                    initJoAngle, coAngle, aa, structure='gaussian',  kk=0, shell_type='thin', Rb=1.):
+        def __init__(self, EEc0,  Gamc0, nn, epE, epB, pp, steps, Rmin, Rmax,
+                     evolution, nlayers, initJoAngle, coAngle, aa, structure='gaussian',
+                     kk=0, shell_type='thin', Rb=1., withSpread=True):
             self.nlayers = nlayers
             self.steps = steps
             self.EEc0 = EEc0
@@ -199,6 +205,7 @@ class jetHeadGauss():
             self.Xp   = Xint(pp)
             self.PhiP = PhiPint(pp)
             self.shell_type = shell_type
+            self.withSpread = withSpread
             self.__totalCells()
             self.__shell_division()
             self.angExt0 = 2.*pi*(1.-cos(initJoAngle/2.))/self.ncells
@@ -337,7 +344,8 @@ class jetHeadGauss():
                     #print shape(self.theta_edges0)
                     CIL = cellsInLayer(ii)
                     self.Gams[:,ii], self.Betas[:,ii], self.joAngles[:,ii], self.mms[:,ii], self.TTs[:,ii], __ = solver_expanding_shell(
-                                    self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa, self.steps, self.angExt0, self.ncells)
+                                    self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa,
+                                    self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
                     #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.theta_edges[:,ii] + self.theta_edges0[ii])
                     self.cthetas[:,ii] = self.get_thetas_division(ii)
                 else:
