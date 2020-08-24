@@ -6,7 +6,7 @@ from joelib.physics.afterglow_properties import *
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata as gdd
 from matplotlib.pylab import *
-
+from scipy.ndimage import gaussian_filter
 
 # Utilities and functions for calculating GRB observables, such as light curves for different components of the emission and synthetic images ##########
 
@@ -281,6 +281,8 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
         for ii in tqdm(range(jet.ncells)):
         #for ii in range(jet.ncells):
             layer      = jet.layer[ii]
+            if jet.cell_Gam0s[layer-1] <= 1.+1e-5:
+                continue
             #print(layer, type(layer))
             #theta_cell = jet.cthetas[layer-1]
             phi_cell   = jet.cphis[ii]
@@ -422,6 +424,85 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
 
         #return tts, 2.*light_curve, 2.*light_curve_RS
         return tts, light_curve/(DD**2.), light_curve_RS/(DD**2.), light_curve_CJ/(DD**2.)
+
+
+
+
+def flux_at_time_SJ(jet, alpha_obs, tt_obs, freq, DD):
+
+
+        ncells = jet.ncells
+
+        #calpha = zeros([2*jet.ncells])
+        #alpha  = zeros([2*jet.ncells])
+
+
+        TTs, RRs, Gams= zeros(2*ncells), zeros(2*ncells), zeros(2*ncells)
+        thetas, thetas0 = zeros(2*ncells), zeros(ncells)
+        #nuMs, nuCs, fluxes    = zeros(2.*self.ncells), zeros(2.*self.ncells), zeros(2.*self.ncells)
+        #fluxes = zeros(2*ncells)
+        calphas = zeros(2*ncells)
+        nE = zeros(2*ncells)
+
+
+
+        for ii in tqdm(range(jet.ncells)):
+
+
+            layer      = jet.layer[ii]
+            phi_cell   = jet.cphis[ii]
+
+            #onAxisTint = interp1d(jet.RRs, jet.TTs[:,layer-1])
+
+            """
+            if jet.aa >= 0:
+                #cthetas_cell = jet.cthetas[:,layer-1]
+                calphaR, calphaR_cj = obsangle(jet.cthetas[:,layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas[:,layer-1], phi_cell, alpha_obs)
+                ttobs = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR)
+                #ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs[:,layer-1], calphaR_cj)
+                ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR_cj)
+            else:
+                calpha, calpha_cj = obsangle(jet.cthetas[:,layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas[:,layer-1], phi_cell, alpha_obs)
+                alpha,  alpha_cj    = arccos(calpha), arccos(calpha_cj)
+                ttobs = obsTime_offAxis_General_NEXP(jet.RRs, jet.TTs[:,layer-1], alpha)
+                ttobs_cj = obsTime_offAxis_General_NEXP(jet.RRs, jet.TTs[:,layer-1], alpha_cj)
+            """
+
+            calphaR, calphaR_cj = obsangle(jet.cthetas[:,layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas[:,layer-1], phi_cell, alpha_obs)
+            ttobs = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR)
+            #ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs[:,layer-1], calphaR_cj)
+            ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR_cj)
+
+            Rint = interp1d(ttobs, jet.RRs)
+            Rint_cj = interp1d(ttobs_cj, jet.RRs)
+            Robs, Robs_cj = Rint(tt_obs), Rint_cj(tt_obs)
+            RRs[ii], RRs[ii+ncells] = Robs, Robs_cj
+            Gams[ii], Gams[ii+ncells] = jet.GamInt[layer-1](Robs), jet.GamInt[layer-1](Robs_cj)
+            TTs[ii], TTs[ii+ncells] = jet.TTInt[layer-1](Robs), jet.TTInt[layer-1](Robs_cj)
+            thetas[ii], thetas[ii+ncells] = jet.cthetasI[layer-1](Robs), jet.cthetasI[layer-1](Robs_cj)
+            thetas0[ii] = jet.cthetas0[layer-1]
+            nE[ii], nE[ii+ncells] = jet.neI[layer-1](Robs), jet.neI[layer-1](Robs_cj)
+
+
+        Betas = sqrt(1.-Gams**(-2))
+        calphas[:ncells], calphas[ncells:] = obsangle(thetas[:ncells], jet.cphis, alpha_obs), obsangle_cj(thetas[ncells:], jet.cphis, alpha_obs)
+        #alphas = arccos(calphas)
+
+
+        Bfield = Bfield_modified(Gams, Betas, jet.nn, jet.epB)
+        gamMobs, nuMobs = minGam_modified(Gams, jet.epE, jet.epB, jet.nn, jet.pp, Bfield, jet.Xp)
+        gamCobs, nuCobs = critGam_modified(Gams, jet.epE, jet.epB, jet.nn, jet.pp, Bfield, TTs)
+        Fnuobs = fluxMax_modified(Robs, Gams, nE, Bfield, jet.PhiP)
+
+
+        dopFacs= dopplerFactor(calphas, Betas)
+        obsFreqs = freq/dopFacs
+        #print(shape(nuMobs), shape(nuCobs), shape(Fnuobs), shape(obsFreqs))
+        fluxes = 1./(DD**2.) * (Gams*(1.-Betas*calphas))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs, nuCobs, Fnuobs, obsFreqs)
+
+
+
+        return fluxes, thetas, thetas0, calphas, Gams
 
 
 
@@ -593,7 +674,7 @@ def skyMap_to_Grid(fluxes, xxs, yys, nx, ny=1, fac=1, scale=False, inter='linear
         dX = xxs.max()-xxs.min()
         dY = yys.max()-yys.min()
         fac = max(dX,dY)/min(dX,dY)
-        print fac
+        print(fac)
         if(dY>=dX):
             ny = round(fac*nx)
         else:

@@ -348,6 +348,7 @@ class jetHeadGauss():
                                     self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
                     #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.theta_edges[:,ii] + self.theta_edges0[ii])
                     self.cthetas[:,ii] = self.get_thetas_division(ii)
+                    #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.joAngles[:,ii]-self.initJoAngle)
                 else:
                     #print shape(self.cell_Gam0s), shape(self.cell_Gam0s[ii])
                     self.Gams[:,ii], self.Betas[:,ii], self.mms[:,ii], self.TTs[:,ii] = solver_collimated_shell(

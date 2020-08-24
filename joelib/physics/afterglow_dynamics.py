@@ -44,7 +44,6 @@ def solver_collimated_shell(M0, gamma0, angExt0, RRs, nn, steps):
 
     """
     Solver for dynamics of relativistic, collimated shell.
-    Lateral expansion implemented as in GP12 or LMR18
     """
 
     gammas, TTs,  = zeros(steps), zeros(steps)
@@ -82,7 +81,6 @@ def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angEx
 
 
     #Solver for dynamics of laterally expaning shell.
-    #Lateral expansion implemented as in GP12 or LMR18
 
 
     # First evolve swept up mass and theta, at fixed Lorentz factor
@@ -101,7 +99,7 @@ def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angEx
         theta, mms = thetas[ii-1], MMs[ii-1]
         gamma = gammas[ii-1]
 
-        if (theta<pi): #and (gamma<=4.):
+        if (theta<pi) and (gamma<=1./sqrt(theta)):
             k1_theta  = delR*dthetadr(gamma, RR, theta, nn, aa)
             k1_mms    = delR*dmdr(gamma, RR, thetaE, theta, nn, aa)/cells
             k2_theta  = delR*dthetadr(gamma, RR+0.5*delR, theta + 0.5*k1_theta, nn, aa)
