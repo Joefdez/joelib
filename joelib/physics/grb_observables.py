@@ -53,7 +53,7 @@ def dopplerFactor(cosa, beta):
 
 
 
-def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, num, Rb):
+def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
 
 
         # Takes top hat jet as input parameter!
@@ -121,9 +121,10 @@ def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, num,
                 #calphaRI, calphaR_cjI = interp1d(jet.RRs, calphaR), interp1d(jet.RRs, calphaR_cj)
                 #calphaR =
                 ttobs = jet.TTs + jet.RRs/cc * (1.-calphaR)
+                ttobs_cj = jet.TTs + jet.RRs/cc*(1.-calphaR_cj)
                 #ttobs = obsTime_offAxis_General_NEXP(jet.RRs, jet.TTs, alphaR)
                 #print(ttobs.min())/sTd
-                ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs, calphaR_cj)
+                #ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs, calphaR_cj)
 
             else:
                 # For collimated shells
@@ -181,16 +182,28 @@ def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, num,
 
 
             # Forward shock stuff, principal jet
+            """
             Bfield = Bfield_modified(GamObs, BetaObs, jet.nn, jet.epB)
             gamMobs, nuMobs = minGam_modified(GamObs, jet.epE, jet.epB, jet.nn, pp, Bfield, jet.Xp)
             gamCobs, nuCobs = critGam_modified(GamObs, jet.epE, jet.epB, jet.nn, pp, Bfield, onAxisTobs)
             Fnuobs = fluxMax_modified(Robs, GamObs, nE, Bfield, jet.PhiP)
+            """
+
+            nuMobs = jet.nuMI(Robs)
+            nuCobs = jet.nuCI(Robs)
+            Fnuobs = jet.FnuMaxI(Robs)
 
             # Forward shock, counter-jet stuff
+            """
             Bfield_cj = Bfield_modified(GamObs_cj, BetaObs_cj, jet.nn, jet.epB)
             gamMobs_cj, nuMobs_cj = minGam_modified(GamObs_cj, jet.epE, jet.epB, jet.nn, pp, Bfield_cj, jet.Xp)
             gamCobs_cj, nuCobs_cj = critGam_modified(GamObs_cj, jet.epE, jet.epB, jet.nn, pp, Bfield_cj, onAxisTobs_cj)
             Fnuobs_cj = fluxMax_modified(Robs_cj, GamObs_cj, nE_cj, Bfield_cj, jet.PhiP)
+            """
+
+            nuMobs_cj = jet.nuMI(Robs_cj)
+            nuCobs_cj = jet.nuCI(Robs_cj)
+            Fnuobs_cj = jet.FnuMaxI(Robs_cj)
 
 
             # Reverse shock stuff
@@ -204,7 +217,7 @@ def light_curve_peer_TH(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, num,
             #afac_cj = angExt_cj/maximum(angExt_cj*ones(num)[filTM_cj][filTm_cj], 2.*pi*(1.-cos(1./GamObs_cj)))
 
             for freq in obsFreqs:
-                fil1, fil2 = where(gamMobs<=gamCobs)[0], where(gamMobs>gamCobs)[0]
+                fil1, fil2 = where(nuMobs<=nuCobs)[0], where(nuMobs>nuCobs)[0]
                 fil3, fil4 = where(nuM_RS<=nuC_RS)[0], where(nuM_RS>nuC_RS)[0]
                 fil5, fil6 = where(nuMobs_cj<=nuCobs_cj)[0], where(nuMobs_cj>nuCobs_cj)[0]
 
