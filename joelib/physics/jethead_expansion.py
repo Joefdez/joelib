@@ -71,6 +71,11 @@ class jetHeadUD():
             if self.aa>=0 :
                 if self.evolution == 'peer':
                 # self.MMs contains the swept-up ISM mass, not to be confused with the ejecta mass self.MM0
+                    #self.Gams, self.Betas, self.joAngle, self.MMs, self.TTs, __ = solver_GP12(
+                    #                            self.MM0, self.Gam0, 0., self.initJoAngle/2., self.RRs, self.nn,
+                    #                            self.aa, self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
+
+
                     self.Gams, self.Betas, self.joAngle, self.MMs, self.TTs, __ = solver_expanding_shell(
                                                 self.MM0, self.Gam0, 0., self.initJoAngle/2., self.RRs, self.nn,
                                                 self.aa, self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
@@ -346,6 +351,10 @@ class jetHeadGauss():
                     self.Gams[:,ii], self.Betas[:,ii], self.joAngles[:,ii], self.mms[:,ii], self.TTs[:,ii], __ = solver_expanding_shell(
                                     self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa,
                                     self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
+
+                    #self.Gams[:,ii], self.Betas[:,ii], self.joAngles[:,ii], self.mms[:,ii], self.TTs[:,ii], __ = solver_GP12(
+                    #                self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa,
+                    #                self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
                     #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.theta_edges[:,ii] + self.theta_edges0[ii])
                     self.cthetas[:,ii] = self.get_thetas_division(ii)
                     #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.joAngles[:,ii]-self.initJoAngle)
