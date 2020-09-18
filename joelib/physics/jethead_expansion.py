@@ -78,7 +78,7 @@ class jetHeadUD():
 
                     self.Gams, self.Betas, self.joAngle, self.MMs, self.TTs, __ = solver_expanding_shell(
                                                 self.MM0, self.Gam0, 0., self.initJoAngle/2., self.RRs, self.nn,
-                                                self.aa, self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
+                                                self.aa, self.steps, self.angExt0, self.ncells, self.Rd, withSpread = self.withSpread)
 
                 elif self.evolution == 'BM':
                     self.Gams, self.Betas, self.joAngle, self.MMs, self.TTs, __ = BMsolver_expanding_shell(
@@ -350,7 +350,7 @@ class jetHeadGauss():
                     CIL = cellsInLayer(ii)
                     self.Gams[:,ii], self.Betas[:,ii], self.joAngles[:,ii], self.mms[:,ii], self.TTs[:,ii], __ = solver_expanding_shell(
                                     self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa,
-                                    self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
+                                    self.steps, self.angExt0, self.ncells, self.cell_Rds[ii], withSpread = self.withSpread)
 
                     #self.Gams[:,ii], self.Betas[:,ii], self.joAngles[:,ii], self.mms[:,ii], self.TTs[:,ii], __ = solver_GP12(
                     #                self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa,

@@ -93,7 +93,7 @@ def solver_collimated_shell(M0, gamma0, angExt0, RRs, nn, steps):
     return gammas, betas, MMs, TTs
 
 
-def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angExt0, cells, withSpread=True):
+def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angExt0, cells, Rd, withSpread=True):
 
 
     #Solver for dynamics of laterally expaning shell.
@@ -115,7 +115,7 @@ def solver_expanding_shell(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angEx
         theta, mms = thetas[ii-1], MMs[ii-1]
         gamma = gammas[ii-1]
 
-        if (theta<pi) and (gamma<=1./sqrt(theta)):
+        if (theta<pi) and (RR>Rd):
             k1_theta  = delR*dthetadr(gamma, RR, theta, nn, aa)
             k1_mms    = delR*dmdr(gamma, RR, thetaE, theta, nn, aa)/cells
             k2_theta  = delR*dthetadr(gamma, RR+0.5*delR, theta + 0.5*k1_theta, nn, aa)
