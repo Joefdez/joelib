@@ -292,8 +292,8 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
         #f, a = subplots()
         #f2, a2 = subplots()
 
-        for ii in tqdm(range(jet.ncells)):
-        #for ii in range(jet.ncells):
+        #for ii in tqdm(range(jet.ncells)):
+        for ii in range(jet.ncells):
             layer      = jet.layer[ii]
             if jet.cell_Gam0s[layer-1] <= 1.+1e-5:
                 continue
