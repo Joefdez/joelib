@@ -63,6 +63,10 @@ class jetHeadUD():
 
 
         def __shell_evolution(self):
+            self.Rd = (3./self.angExt0 * 1./(cc**2.*mp) *
+                            self.EE/(self.nn*self.Gam0**2.))**(1./3.)
+            self.Td = self.Rd*(1.-self.Beta0)/(cc*self.Beta0)
+
             self.RRs = logspace(log10(self.Rmin), log10(self.Rmax), self.steps)
             self.Gams, self.mms = zeros([len(self.RRs)]), zeros([len(self.RRs)])
             #self.thetas, self.angExt = zeros([len(self.RRs)]), zeros([len(self.RRs)])
@@ -110,10 +114,6 @@ class jetHeadUD():
 
             #self.angExtI = interp1d(self.RRs, self.angExt)
 
-            self.Rd = (3./self.angExt0 * 1./(cc**2.*mp) *
-                            self.EE/(self.nn*self.Gam0**2.))**(1./3.)
-            self.Td = self.Rd*(1.-self.Beta0)/(cc*self.Beta0)
-
 
 
 
@@ -131,9 +131,11 @@ class jetHeadUD():
             cthetas = zeros([self.steps, self.nlayers])
             cthetasI = []
 
-            for ii in range(self.steps):
-                    thetas[ii,:], cthetas[ii,:] = self.get_thetas(self.joAngle[ii])
+            thetas0, cthetas0 = self.get_thetas(self.initJoAngle)
 
+            for ii in range(self.steps):
+                #thetas[ii,:], cthetas[ii,:] = self.get_thetas(self.joAngle[ii])
+                cthetas[ii,:] = cthetas0[:] + 0.5*(self.joAngle[ii]-self.initJoAngle)
 
             for jj in range(self.nlayers):
                 cthetasI.append(interp1d(self.RRs, cthetas[:,jj]))
@@ -272,6 +274,7 @@ class jetHeadGauss():
             for ii in range(self.steps):
                     thetas[ii,:], cthetas[ii,:] = self.get_thetas(self.initJoAngle)
 
+
             self.thetas0, self.cthetas0 = thetas[0,:], cthetas[0,:]
             self.theta_edges0 = thetas[0,:] # Initial outmost edges of each cell
             #self.thetas, self.cthetas = thetas, cthetas
@@ -342,13 +345,14 @@ class jetHeadGauss():
             self.TTInt = []
             self.GamInt = []
             self.neI = []
+            self.angExtI = []
             self.gamMI, self.gamCI, self.nuMI, self.nuCI = [], [], [], []
             self.FnuMax = []
             for ii in range(self.nlayers):
                 if self.aa>=0 :
                     #print shape(self.theta_edges0)
                     CIL = cellsInLayer(ii)
-                    self.Gams[:,ii], self.Betas[:,ii], self.joAngles[:,ii], self.mms[:,ii], self.TTs[:,ii], __ = solver_expanding_shell(
+                    self.Gams[:,ii], self.Betas[:,ii], self.joAngles[:,ii], self.mms[:,ii], self.TTs[:,ii], self.angExt[:,ii] = solver_expanding_shell(
                                     self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa,
                                     self.steps, self.angExt0, self.ncells, self.cell_Rds[ii], withSpread = self.withSpread)
 
@@ -356,8 +360,8 @@ class jetHeadGauss():
                     #                self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa,
                     #                self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
                     #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.theta_edges[:,ii] + self.theta_edges0[ii])
-                    self.cthetas[:,ii] = self.get_thetas_division(ii)
-                    #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.joAngles[:,ii]-self.initJoAngle)
+                    #self.cthetas[:,ii] = self.get_thetas_division(ii)
+                    self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.joAngles[:,ii]-self.initJoAngle)
                 else:
                     #print shape(self.cell_Gam0s), shape(self.cell_Gam0s[ii])
                     self.Gams[:,ii], self.Betas[:,ii], self.mms[:,ii], self.TTs[:,ii] = solver_collimated_shell(
@@ -368,6 +372,8 @@ class jetHeadGauss():
                 self.GamInt.append(interp1d(self.RRs, self.Gams[:,ii]))
                 #self.angExt = ones([len(self.RRs)])*self.angExt0/self.ncells
                 self.neI.append(interp1d(self.RRs, self.mms[:,ii]/mp))         # Interpolated number of electrons as a function of R for the flux calculation
+                self.angExtI.append(interp1d(self.RRs, self.angExt[:,ii]))
+
 
                 Bf = Bfield_modified(self.Gams[:,ii], self.Betas[:,ii], self.nn, self.epB)
                 self.Bfield.append(interp1d(self.RRs, Bf))

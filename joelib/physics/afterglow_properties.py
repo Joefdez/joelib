@@ -56,7 +56,7 @@ def minGam_modified(Gam, epE, epB, nn, pp, Bfield, Xp):
 
 
     beta = sqrt(1.-Gam**(-2))
-    GamMin    = mp/me * (pp-2.)/(pp-1.) * epE * (Gam - 1.)
+    GamMin    = mp/me * (pp-2.)/(pp-1.) * epE * (Gam - 1.) 
     #Bfield    = sqrt(32. * pi * mp * cc**2. * epB * nn * Gam*(Gam-1))
     nuGM      = 3.*Xp*(Gam*(1.-beta))**(-1)*GamMin**2.*qe*Bfield/(4.*pi*me*cc)
     #nuGM      = 3.*(Gam*(1.-beta))*Xp*GamMin**2.*qe*Bfield/(4.*pi*me*cc)
