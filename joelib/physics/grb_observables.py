@@ -306,6 +306,7 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
             #print(layer-1)
             GamInt = jet.GamInt[layer-1]
             onAxisTint  = jet.TTInt[layer-1]
+            """
             if jet.aa >= 0:
                 # For laterally expanding shells
                 #theta_cellR = ones([jet.steps])*jet.cthetas[0,layer-1] + 0.5*arcsin(sin(jet.thetas[:, layer-1])-sin(jet.initJoAngle))
@@ -327,15 +328,20 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
                 alpha,  alpha_cj    = arccos(calpha), arccos(calpha_cj)
                 ttobs = obsTime_offAxis_General_NEXP(jet.RRs, jet.TTs[:,layer-1], alpha)
                 ttobs_cj = obsTime_offAxis_General_NEXP(jet.RRs, jet.TTs[:,layer-1], alpha_cj)
+            """
 
+            theta_cellR = jet.cthetas0[layer-1]
+            calphaR, calphaR_cj = obsangle(theta_cellR, phi_cell, alpha_obs), obsangle_cj(theta_cellR, phi_cell, alpha_obs)
+            ttobs = jet.TTs[:, layer-1] + jet.RRs/cc * (1.-calphaR)
+            #ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc* (1.-calphaR_cj)
 
 
             #ttobs = obsTime_offAxis_UR(jet.RRs, jet.TTs, jet.Betas, alpha)
 
             filTM  = where(tts<=max(ttobs))[0]
             filTm  = where(tts[filTM]>=min(ttobs))[0]
-            filTM_cj  = where(tts<=max(ttobs_cj))[0]
-            filTm_cj  = where(tts[filTM_cj]>=min(ttobs_cj))[0]
+            #filTM_cj  = where(tts<=max(ttobs_cj))[0]
+            #filTm_cj  = where(tts[filTM_cj]>=min(ttobs_cj))[0]
             #print shape(filTM_cj[filTM_cj])
             #print shape(filTM_cj[filTM_cj])
             #print(len(tts[filT]))
@@ -348,22 +354,22 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
             #    onAxisTobs = obsTime_onAxis_adiabatic(Robs, BetaObs)
             #elif jet.evolution == 'peer':
             #    onAxisTobs = obsTime_onAxis_integrated(Robs, GamObs, BetaObs)
-            onAxisTobs = onAxisTint(Robs)
+            #onAxisTobs = onAxisTint(Robs)
             #thetaObs = jet.cthetasI[layer-1](Robs)
-            thetaObs = jet.cthetas0[layer-1]
-            calpha = obsangle(thetaObs, phi_cell, alpha_obs)
+            #thetaObs = jet.cthetas0[layer-1]
+            calpha = calphaR # obsangle(thetaObs, phi_cell, alpha_obs)
             nE = jet.neI[layer-1](Robs)
             #angExt = jet.angExtI[layer-1](Robs)
 
 
-            Rint_cj = interp1d(ttobs_cj, jet.RRs)
-            Robs_cj= Rint(tts[filTM_cj][filTm_cj])
-            GamObs_cj = jet.GamInt[layer-1](Robs_cj)
-            BetaObs_cj = sqrt(1.-GamObs_cj**(-2.))
-            onAxisTobs_cj = onAxisTint(Robs_cj)
-            thetaObs_cj = jet.cthetasI[layer-1](Robs_cj)
-            calpha_cj = obsangle_cj(thetaObs_cj, phi_cell, alpha_obs)
-            nE_cj = jet.neI[layer-1](Robs_cj)
+            #Rint_cj = interp1d(ttobs_cj, jet.RRs)
+            #Robs_cj= Rint(tts[filTM_cj][filTm_cj])
+            #GamObs_cj = jet.GamInt[layer-1](Robs_cj)
+            #BetaObs_cj = sqrt(1.-GamObs_cj**(-2.))
+            #onAxisTobs_cj = onAxisTint(Robs_cj)
+            #thetaObs_cj = jet.cthetasI[layer-1](Robs_cj)
+            #calpha_cj = obsangle_cj(thetaObs_cj, phi_cell, alpha_obs)
+            #nE_cj = jet.neI[layer-1](Robs_cj)
             #angExt_cj = jet.angExtI[layer-1](Robs_cj)
             #if jet.aa>=0:
             #    alpha, alpha_cj  = alphaRI(Robs), alphaR_cjI(Robs)
@@ -390,9 +396,9 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
             nuCobs = jet.nuCI[layer-1](Robs)
             Fnuobs = jet.FnuMax[layer-1](Robs)
 
-            nuMobs_cj = jet.nuMI[layer-1](Robs_cj)
-            nuCobs_cj = jet.nuCI[layer-1](Robs_cj)
-            Fnuobs_cj = jet.FnuMax[layer-1](Robs_cj)
+            #nuMobs_cj = jet.nuMI[layer-1](Robs_cj)
+            #nuCobs_cj = jet.nuCI[layer-1](Robs_cj)
+            #Fnuobs_cj = jet.FnuMax[layer-1](Robs_cj)
 
             # Forward shock, counter-jet stuff
             #Bfield_cj = Bfield_modified(GamObs_cj, BetaObs_cj, jet.nn, jet.epB)
@@ -402,23 +408,23 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
 
 
             # Reverse shock stuff
-            nuM_RS, nuC_RS, Fnu_RS = params_tt_RS_SJ(jet, onAxisTobs, layer-1, Rb)
+            #nuM_RS, nuC_RS, Fnu_RS = params_tt_RS_SJ(jet, onAxisTobs, layer-1, Rb)
 
 
             dopFacs =  dopplerFactor(calpha, BetaObs)
             #afac = angExt/maximum(angExt*ones(num), 2.*pi*(1.-cos(1./GamObs)))
             #afac = maximum(ones(num), thetaObs**2*GamObs**2)
-            dopFacs_cj =  dopplerFactor(calpha_cj, BetaObs_cj)
+            #dopFacs_cj =  dopplerFactor(calpha_cj, BetaObs_cj)
             #afac_cj = angExt_cj/maximum(angExt_cj*ones(num)[filTM_cj][filTm_cj], 2.*pi*(1.-cos(1./GamObs_cj)))
 
             for freq in obsFreqs:
                 fil1, fil2 = where(nuMobs<=nuCobs)[0], where(nuMobs>nuCobs)[0]
-                fil3, fil4 = where(nuM_RS<=nuC_RS)[0], where(nuM_RS>nuC_RS)[0]
-                fil5, fil6 = where(nuMobs_cj<=nuCobs_cj)[0], where(nuMobs_cj>nuCobs_cj)[0]
+                #fil3, fil4 = where(nuM_RS<=nuC_RS)[0], where(nuM_RS>nuC_RS)[0]
+                #fil5, fil6 = where(nuMobs_cj<=nuCobs_cj)[0], where(nuMobs_cj>nuCobs_cj)[0]
 
 
                 freqs = freq/dopFacs              # Calculate the rest-frame frequencies correspondng to the observed frequency
-                freqs_cj = freq/dopFacs_cj
+                #freqs_cj = freq/dopFacs_cj
 
                 #freqs = freq*ones(len(dopFacs))
 
@@ -428,12 +434,12 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
                 #    light_curve[obsFreqs==freq, filTM[filTm][fil2]] = light_curve[obsFreqs==freq, filTM[filTm][fil2]] + (
                 #                        (GamObs[fil2]*(1.-BetaObs[fil2]*calpha[fil2]))**(-3.) * FluxNuFC_arr(jet.pp, nuMobs[fil2], nuCobs[fil2], Fnuobs[fil2], freqs[fil2]))#*calpha
 
-                light_curve_RS[obsFreqs==freq, filTM[filTm][fil3]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil3]] + (
-                                        (GamObs[fil3]*(1.-BetaObs[fil3]*calpha))**(-3.) * FluxNuSC_arr(jet.pp, nuM_RS[fil3], nuC_RS[fil3], Fnu_RS[fil3], freqs[fil3]))#*calpha
+                #light_curve_RS[obsFreqs==freq, filTM[filTm][fil3]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil3]] + (
+                #                        (GamObs[fil3]*(1.-BetaObs[fil3]*calpha))**(-3.) * FluxNuSC_arr(jet.pp, nuM_RS[fil3], nuC_RS[fil3], Fnu_RS[fil3], freqs[fil3]))#*calpha
                 #light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] = light_curve_RS[obsFreqs==freq, filTM[filTm][fil4]] + (
                 #                                    afac[fil4] * dopFacs[fil4]**3. * FluxNuFC_arr(jet, nuM_RS[fil4], nuC_RS[fil4], Fnu_RS[fil4], freqs[fil4]))*calpha
-                light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] = light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] + (
-                                        (GamObs_cj[fil5]*(1.-BetaObs_cj[fil5]*calpha_cj))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs_cj[fil5], nuCobs_cj[fil5], Fnuobs_cj[fil5], freqs_cj[fil5]))#*calpha
+                #light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] = light_curve_CJ[obsFreqs==freq, filTM_cj[filTm_cj][fil5]] + (
+                #                        (GamObs_cj[fil5]*(1.-BetaObs_cj[fil5]*calpha_cj))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs_cj[fil5], nuCobs_cj[fil5], Fnuobs_cj[fil5], freqs_cj[fil5]))#*calpha
 
 
 
