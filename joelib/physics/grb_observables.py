@@ -641,7 +641,8 @@ def skymapSJ(jet, alpha_obs, tt_obs, freq, velocity=False):
             ttobs_cj = obsTime_offAxis_General_NEXP(jet.RRs, jet.TTs[:,layer-1], alpha_cj)
         """
 
-        calphaR, calphaR_cj = obsangle(jet.cthetas[:,layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas[:,layer-1], phi_cell, alpha_obs)
+        #calphaR, calphaR_cj = obsangle(jet.cthetas[:,layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas[:,layer-1], phi_cell, alpha_obs)
+        calphaR, calphaR_cj = obsangle(jet.cthetas0[layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas0[layer-1], phi_cell, alpha_obs)
         ttobs = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR)
         #ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs[:,layer-1], calphaR_cj)
         ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR_cj)
@@ -674,7 +675,8 @@ def skymapSJ(jet, alpha_obs, tt_obs, freq, velocity=False):
     Fnuobs = fluxMax_modified(Robs, Gams, nE, Bfield, jet.PhiP)
 
 
-    dopFacs= dopplerFactor(calphas, Betas)
+    #dopFacs= dopplerFactor(calphas, Betas)
+    dopFacs = dopplerFactor(calphaR, Betas)
     obsFreqs = freq/dopFacs
     #print(shape(nuMobs), shape(nuCobs), shape(Fnuobs), shape(obsFreqs))
     fluxes = 1./(abs(calphas)*RRs**2.) * (Gams*(1.-Betas*calphas))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs, nuCobs, Fnuobs, obsFreqs)
