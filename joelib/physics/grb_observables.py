@@ -607,7 +607,7 @@ def skymapSJ(jet, alpha_obs, tt_obs, freq, velocity=False):
 
 
     TTs, RRs, Gams= zeros(2*ncells), zeros(2*ncells), zeros(2*ncells)
-    thetas = zeros(2*ncells)
+    thetas, calphasR = zeros(2*ncells), zeros(2*ncells)
     #nuMs, nuCs, fluxes    = zeros(2.*self.ncells), zeros(2.*self.ncells), zeros(2.*self.ncells)
     #fluxes = zeros(2*ncells)
     calphas = zeros(2*ncells)
@@ -642,10 +642,10 @@ def skymapSJ(jet, alpha_obs, tt_obs, freq, velocity=False):
         """
 
         #calphaR, calphaR_cj = obsangle(jet.cthetas[:,layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas[:,layer-1], phi_cell, alpha_obs)
-        calphaR, calphaR_cj = obsangle(jet.cthetas0[layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas0[layer-1], phi_cell, alpha_obs)
-        ttobs = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR)
+        calphasR[ii], calphasR[ii+ncells] = obsangle(jet.cthetas0[layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas0[layer-1], phi_cell, alpha_obs)
+        ttobs = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphasR[ii])
         #ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs[:,layer-1], calphaR_cj)
-        ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR_cj)
+        ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphasR[ii+ncells])
 
         Rint = interp1d(ttobs, jet.RRs)
         Rint_cj = interp1d(ttobs_cj, jet.RRs)
@@ -676,10 +676,10 @@ def skymapSJ(jet, alpha_obs, tt_obs, freq, velocity=False):
 
 
     #dopFacs= dopplerFactor(calphas, Betas)
-    dopFacs = dopplerFactor(calphaR, Betas)
+    dopFacs = dopplerFactor(calphasR, Betas)
     obsFreqs = freq/dopFacs
     #print(shape(nuMobs), shape(nuCobs), shape(Fnuobs), shape(obsFreqs))
-    fluxes = 1./(abs(calphas)*RRs**2.) * (Gams*(1.-Betas*calphas))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs, nuCobs, Fnuobs, obsFreqs)
+    fluxes = 1./(abs(calphasR)*RRs**2.) * (Gams*(1.-Betas*calphasR))**(-3.) * FluxNuSC_arr(jet.pp, nuMobs, nuCobs, Fnuobs, obsFreqs)
 
     return fluxes, RRs*im_xxs, RRs*im_yys, RRs, Gams, calphas, TTs
 

@@ -134,8 +134,8 @@ class jetHeadUD():
             thetas0, cthetas0 = self.get_thetas(self.initJoAngle)
 
             for ii in range(self.steps):
-                #thetas[ii,:], cthetas[ii,:] = self.get_thetas(self.joAngle[ii])
-                cthetas[ii,:] = cthetas0[:] + 0.5*(self.joAngle[ii]-self.initJoAngle)
+                thetas[ii,:], cthetas[ii,:] = self.get_thetas(self.joAngle[ii])
+                #cthetas[ii,:] = cthetas0[:] + 0.5*(self.joAngle[ii]-self.initJoAngle)
 
             for jj in range(self.nlayers):
                 cthetasI.append(interp1d(self.RRs, cthetas[:,jj]))
