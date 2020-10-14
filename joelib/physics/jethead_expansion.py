@@ -214,8 +214,8 @@ class jetHeadGauss():
             self.shell_type = shell_type
             self.withSpread = withSpread
             self.__totalCells()
-            self.__shell_division()
             self.angExt0 = 2.*pi*(1.-cos(initJoAngle/2.))/self.ncells
+            self.thetas0, self.cthetas0 = self.get_thetas(2.*self.initJoAngle)
             self.__correct_energy()
             self.__energies_and_LF()
             self.__make_layers()
@@ -231,6 +231,7 @@ class jetHeadGauss():
             self.theta_edges, self.cthetas = zeros([self.steps, self.nlayers]), zeros([self.steps, self.nlayers])
             self.joAngles = zeros([self.steps, self.nlayers])
             self.__shell_evolution()
+            self.__shell_division()
             self.__thetas_interpolation()
             self.__peakParamsRS_struc()
 
@@ -270,12 +271,11 @@ class jetHeadGauss():
 
             thetas = zeros([self.steps, self.nlayers+1])
             cthetas = zeros([self.steps, self.nlayers])
-
             for ii in range(self.steps):
-                    thetas[ii,:], cthetas[ii,:] = self.get_thetas(self.initJoAngle)
+                cthetas[ii,:] = self.cthetas0 + (self.joAngles[ii,:]-self.initJoAngle)
 
 
-            self.thetas0, self.cthetas0 = thetas[0,:], cthetas[0,:]
+            #self.thetas0, self.cthetas0 = thetas[0,:], cthetas[0,:]
             self.theta_edges0 = thetas[0,:] # Initial outmost edges of each cell
             #self.thetas, self.cthetas = thetas, cthetas
 
@@ -360,8 +360,8 @@ class jetHeadGauss():
                     #                self.cell_MM0s[ii], self.cell_Gam0s[ii], 0., self.initJoAngle/2., self.RRs, self.nn, self.aa,
                     #                self.steps, self.angExt0, self.ncells, withSpread = self.withSpread)
                     #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.theta_edges[:,ii] + self.theta_edges0[ii])
-                    #self.cthetas[:,ii] = self.get_thetas_division(ii)
-                    self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.joAngles[:,ii]-self.initJoAngle)
+                    self.cthetas[:,ii] = self.get_thetas_division(ii)
+                    #self.cthetas[:,ii] = self.cthetas0[ii] + 0.5*(self.joAngles[:,ii]-self.initJoAngle)
                 else:
                     #print shape(self.cell_Gam0s), shape(self.cell_Gam0s[ii])
                     self.Gams[:,ii], self.Betas[:,ii], self.mms[:,ii], self.TTs[:,ii] = solver_collimated_shell(
