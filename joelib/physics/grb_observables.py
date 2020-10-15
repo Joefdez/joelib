@@ -264,7 +264,7 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
 
         elif rangeType=='discrete':
 
-            tts, num = timeD, len(timeD)
+            tts, num = timeD*sTd, len(timeD)
 
 
         if type(obsFreqs)!=ndarray:
