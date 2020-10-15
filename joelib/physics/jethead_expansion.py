@@ -231,7 +231,7 @@ class jetHeadGauss():
             self.theta_edges, self.cthetas = zeros([self.steps, self.nlayers]), zeros([self.steps, self.nlayers])
             self.joAngles = zeros([self.steps, self.nlayers])
             self.__shell_evolution()
-            self.__shell_division()
+            #self.__shell_division()
             self.__thetas_interpolation()
             self.__peakParamsRS_struc()
 
@@ -310,6 +310,7 @@ class jetHeadGauss():
                 #self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(self.coAngle**2.))
                 #print shape(self.cthetas0)
                 self.cell_Gam0s = 1.+(self.Gamc0-1)*exp(-1.*self.cthetas0**2./(2.*self.coAngle**2.))
+                self.cell_Gam0s[self.cell_Gam0s<=1.+1e-6] == 1.+1.e-6
             elif self.structure=='power-law':
                 self.cell_EEs   = zeros(self.nlayers)
                 self.cell_Gam0s = zeros(self.nlayers)
@@ -321,6 +322,7 @@ class jetHeadGauss():
 
 
             self.cell_Beta0s = sqrt(1.-(self.cell_Gam0s)**(-2.))
+            #self.cell_Beta0s[self.cell_Beta0s<=1e-6] = 1.e-6
             self.cell_MM0s = self.cell_EEs/(self.cell_Gam0s*cc**2.)
 
 
