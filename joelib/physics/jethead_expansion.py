@@ -310,7 +310,7 @@ class jetHeadGauss():
                 #self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(self.coAngle**2.))
                 #print shape(self.cthetas0)
                 self.cell_Gam0s = 1.+(self.Gamc0-1)*exp(-1.*self.cthetas0**2./(2.*self.coAngle**2.))
-                self.cell_Gam0s[self.cell_Gam0s<=1.+1e-6] == 1.+1.e-6
+                #self.cell_Gam0s[self.cell_Gam0s<=1.+1e-6] == 1.+1.e-6
             elif self.structure=='power-law':
                 self.cell_EEs   = zeros(self.nlayers)
                 self.cell_Gam0s = zeros(self.nlayers)
