@@ -647,9 +647,10 @@ def skymapSJ(jet, alpha_obs, tt_obs, freq, velocity=False):
         #ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs[:,layer-1], calphaR_cj)
         ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphasR[ii+ncells])
 
-        Rint = interp1d(ttobs, jet.RRs)
+        Rint    = interp1d(ttobs, jet.RRs)
         Rint_cj = interp1d(ttobs_cj, jet.RRs)
-        Robs, Robs_cj = Rint(tt_obs), Rint_cj(tt_obs)
+        Robs    = Rint(tt_obs)
+        Robs_cj = Rint_cj(tt_obs)
         RRs[ii], RRs[ii+ncells] = Robs, Robs_cj
         Gams[ii], Gams[ii+ncells] = jet.GamInt[layer-1](Robs), jet.GamInt[layer-1](Robs_cj)
         TTs[ii], TTs[ii+ncells] = jet.TTInt[layer-1](Robs), jet.TTInt[layer-1](Robs_cj)
