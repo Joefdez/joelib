@@ -215,7 +215,7 @@ class jetHeadGauss():
             self.withSpread = withSpread
             self.__totalCells()
             self.angExt0 = 2.*pi*(1.-cos(initJoAngle/2.))/self.ncells
-            self.thetas0, self.cthetas0 = self.get_thetas(2.*self.initJoAngle)
+            self.thetas0, self.cthetas0 = self.get_thetas(self.initJoAngle)
             self.__correct_energy()
             self.__energies_and_LF()
             self.__make_layers()
@@ -310,7 +310,7 @@ class jetHeadGauss():
                 #self.cell_EEs = self.EE * exp(-1.*self.cthetas**2./(self.coAngle**2.))
                 #print shape(self.cthetas0)
                 self.cell_Gam0s = 1.+(self.Gamc0-1)*exp(-1.*self.cthetas0**2./(2.*self.coAngle**2.))
-                self.cell_Gam0s[self.cell_Gam0s<=1.+1e-6] == 1.+1.e-6
+                #self.cell_Gam0s[self.cell_Gam0s<=1.+1e-6] == 1.+1.e-6
             elif self.structure=='power-law':
                 self.cell_EEs   = zeros(self.nlayers)
                 self.cell_Gam0s = zeros(self.nlayers)
