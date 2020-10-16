@@ -211,9 +211,9 @@ def solver_GP12(M0, gamma0, thetaE, theta0, RRs, nn, aa, steps, angExt0, cells, 
             MMs[ii]      = mm    + (1./6.) * (k1_mms   + 2.*k2_mms   + 2.*k3_mms   + k4_mms)
             gammas[ii]   = gamma + (1./6.) * (k1_gamma + 2.*k2_gamma + 2.*k3_gamma + k4_gamma)
 
-            print "Gam: ", k1_gamma, k2_gamma, k3_gamma, k4_gamma, "Tot: ",  (1./6.) * (k1_gamma + 2.*k2_gamma + 2.*k3_gamma + k4_gamma)
-            print "theta: ", k1_theta, k2_theta, k3_theta, k4_theta, "Tot ", (1./6.) * (k1_theta + 2.*k2_theta + 2.*k3_theta + k4_theta)
-            print "mm: ", k1_mms, k2_mms, k3_mms, k4_mms, "Tot ", (1./6.) * (k1_mms   + 2.*k2_mms   + 2.*k3_mms   + k4_mms)
+            #print "Gam: ", k1_gamma, k2_gamma, k3_gamma, k4_gamma, "Tot: ",  (1./6.) * (k1_gamma + 2.*k2_gamma + 2.*k3_gamma + k4_gamma)
+            #print "theta: ", k1_theta, k2_theta, k3_theta, k4_theta, "Tot ", (1./6.) * (k1_theta + 2.*k2_theta + 2.*k3_theta + k4_theta)
+            #print "mm: ", k1_mms, k2_mms, k3_mms, k4_mms, "Tot ", (1./6.) * (k1_mms   + 2.*k2_mms   + 2.*k3_mms   + k4_mms)
 
 
         else:   # If the shell is already spherical, stop considering lateral expansion in the swept-up mass
