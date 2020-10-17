@@ -92,11 +92,13 @@ freqs = np.unique(freq)
 
 data_ord = np.array([])
 err_ord = np.array([])
+time_ord = np.array([])
 
 for frequency in freqs:
 	print(frequency)
 	data_ord = np.concatenate([data_ord, data[freq==frequency]])
 	err_ord = np.concatenate([err_ord, err[freq==frequency]])
+	time_ord = np.concatenate([time_ord, time[freq==frequency]])
 
 print(np.shape(err_ord), np.shape(data_ord))
 
@@ -120,14 +122,13 @@ def lnlike(prior, time, data_ord, freq, err_ord):
 
 
 	jet = Exp.jetHeadGauss(Eps0, G0, nn, Ee, EB, pp, 500, 1e14, 1e22, "peer", 50, 30.*pi/180., thc1, aa=1, withSpread=False)
+	tt, lc, _, _ = Exp.light_curve_peer_SJ(jet, pp, incl1, freqs, 41.3e6*pc, "discrete", time, 1)
+
 
 	LC= np.array([])
 
 	for frequency in freqs:
-		times = time[freq==frequency]
-
-		tt, lc, _, _ = Exp.light_curve_peer_SJ(jet, pp, incl1, frequency, 41.3e6*pc, "discrete", times, 1)
-		LC = np.concatenate([LC, lc[0,:]])
+		LC = np.concatenate([LC, lc[freqs==frequency,time_ord[freq==frequency]]])
 
 
 	#RETURN AN ARRAY OF FLUX VALUES AT TIMES AND FREQUENCIES THAT ARE THE SAME AS THE OBSERVATIONS
