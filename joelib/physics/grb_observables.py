@@ -346,7 +346,7 @@ def light_curve_peer_SJ(jet, pp, alpha_obs, obsFreqs, DD, rangeType, timeD, Rb):
             #print shape(filTM_cj[filTM_cj])
             #print(len(tts[filT]))
 
-            Rint =  interp1d(ttobs, jet.RRs)
+            Rint =  interp1d(ttobs, jet.RRs, copy=False)
             Robs =  Rint(tts[filTM][filTm])
             GamObs = GamInt(Robs)
             BetaObs = sqrt(1.-GamObs**(-2.))
@@ -544,10 +544,6 @@ def skymapTH(jet, alpha_obs, tt_obs, freq):
     im_xxs, im_yys = zeros(2*ncells), zeros(2*ncells)
     nE = zeros(2*ncells)
 
-    if velocity:
-        velX = zeros(2*ncells)
-        velY = zeros(2*ncells)
-
 
     for ii in tqdm(range(jet.ncells)):
 
@@ -559,7 +555,7 @@ def skymapTH(jet, alpha_obs, tt_obs, freq):
         calphaR, calphaR_cj = obsangle(jet.cthetas[:,layer-1], phi_cell, alpha_obs), obsangle_cj(jet.cthetas[:,layer-1], phi_cell, alpha_obs)
         ttobs = jet.TTs + jet.RRs/cc * (1.-calphaR)
         #ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs[:,layer-1], calphaR_cj)
-        ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphaR_cj)
+        ttobs_cj = jet.TTs + jet.RRs/cc * (1.-calphaR_cj)
 
         Rint = interp1d(ttobs, jet.RRs)
         Rint_cj = interp1d(ttobs_cj, jet.RRs)
@@ -647,8 +643,8 @@ def skymapSJ(jet, alpha_obs, tt_obs, freq, velocity=False):
         #ttobs_cj = obsTime_offAxis_General_EXP(jet.RRs, jet.TTs[:,layer-1], calphaR_cj)
         ttobs_cj = jet.TTs[:,layer-1] + jet.RRs/cc * (1.-calphasR[ii+ncells])
 
-        Rint    = interp1d(ttobs, jet.RRs)
-        Rint_cj = interp1d(ttobs_cj, jet.RRs)
+        Rint    = interp1d(ttobs, jet.RRs, copy=False)
+        Rint_cj = interp1d(ttobs_cj, jet.RRs, copy=False)
         Robs    = Rint(tt_obs)
         Robs_cj = Rint_cj(tt_obs)
         RRs[ii], RRs[ii+ncells] = Robs, Robs_cj

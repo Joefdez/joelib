@@ -370,23 +370,23 @@ class jetHeadGauss():
                                     self.cell_MM0s[ii], self.cell_Gam0s[ii], self.angExt0, self.RRs, self.nn, self.steps)
                     self.cthetas[:,ii] = self.cthetas0[ii]
 
-                self.TTInt.append(interp1d(self.RRs, self.TTs[:,ii]))
-                self.GamInt.append(interp1d(self.RRs, self.Gams[:,ii]))
+                self.TTInt.append(interp1d(self.RRs, self.TTs[:,ii], copy=False))
+                self.GamInt.append(interp1d(self.RRs, self.Gams[:,ii], copy=False))
                 #self.angExt = ones([len(self.RRs)])*self.angExt0/self.ncells
-                self.neI.append(interp1d(self.RRs, self.mms[:,ii]/mp))         # Interpolated number of electrons as a function of R for the flux calculation
-                self.angExtI.append(interp1d(self.RRs, self.angExt[:,ii]))
+                self.neI.append(interp1d(self.RRs, self.mms[:,ii]/mp, copy=False))         # Interpolated number of electrons as a function of R for the flux calculation
+                self.angExtI.append(interp1d(self.RRs, self.angExt[:,ii], copy=False))
 
 
                 Bf = Bfield_modified(self.Gams[:,ii], self.Betas[:,ii], self.nn, self.epB)
-                self.Bfield.append(interp1d(self.RRs, Bf))
+                self.Bfield.append(interp1d(self.RRs, Bf, copy=False))
                 gM, fM =  minGam_modified(self.Gams[:,ii], self.epE, self.epB, self.nn, self.pp, Bf, self.Xp)
-                self.gamMI.append(interp1d(self.RRs, gM))
-                self.nuMI.append(interp1d(self.RRs, fM))
+                self.gamMI.append(interp1d(self.RRs, gM, copy=False))
+                self.nuMI.append(interp1d(self.RRs, fM, copy=False))
                 gC, fC = critGam_modified(self.Gams[:,ii], self.epE, self.epB, self.nn, self.pp, Bf, self.TTs[:,ii])
-                self.gamCI.append(interp1d(self.RRs, gC))
-                self.nuCI.append(interp1d(self.RRs, fC))
+                self.gamCI.append(interp1d(self.RRs, gC, copy=False))
+                self.nuCI.append(interp1d(self.RRs, fC, copy=False))
                 Fmax = fluxMax_modified(self.RRs, self.Gams[:,ii], self.mms[:,ii]/mp, Bf, self.PhiP)
-                self.FnuMax.append(interp1d(self.RRs, Fmax))
+                self.FnuMax.append(interp1d(self.RRs, Fmax, copy=False))
 
 
 
